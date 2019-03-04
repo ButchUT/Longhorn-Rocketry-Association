@@ -8,33 +8,38 @@
 #include <Arduino.h>
 
 // Global flags to configure code
-#define ACCEL_NUMBER  0  // a flag that contains the number code for which accelerometer chip we are using 
+#define ACCEL_NUMBER  1  // a flag that contains the number code for which accelerometer chip we are using 
 #define USING_LSM     0
 #define USING_ADX     1
 void updateAccelReadings();
 
-#define FIFO_LENGTH       200
-#define NUM_FIFOS          12
-#define ACCEL_X_FIFO        0
-#define ACCEL_Y_FIFO        1
-#define ACCEL_Z_FIFO        2
-#define GYRO_X_FIFO         3
-#define GYRO_Y_FIFO         4
-#define GYRO_Z_FIFO         5
-#define MAG_X_FIFO          6
-#define MAG_Y_FIFO          7
-#define MAG_Z_FIFO          8
-#define BARO_ALT_FIFO       9
-#define BARO_PRESS_FIFO    10
-#define BARO_TEMP_FIFO     11
+#define LIFO_LENGTH       200
+#define NUM_LIFOS          13
+#define ACCEL_X_LIFO        0
+#define ACCEL_Y_LIFO        1
+#define ACCEL_Z_LIFO        2
+#define GYRO_X_LIFO         3
+#define GYRO_Y_LIFO         4
+#define GYRO_Z_LIFO         5
+#define MAG_X_LIFO          6
+#define MAG_Y_LIFO          7
+#define MAG_Z_LIFO          8
+#define BARO_ALT_LIFO       9
+#define BARO_PRESS_LIFO    10
+#define BARO_TEMP_LIFO     11
+#define STRATO_LIFO        12
 
-float fifos[NUM_FIFOS][FIFO_LENGTH]; // One Fifo for each sensor
-int fifoIndicies[NUM_FIFOS][2];      // 0 == getIndex, 1 == putIndex
+float lifos[NUM_LIFOS][LIFO_LENGTH]; // One Lifo for each sensor
+uint32_t timeStamps[NUM_LIFOS][LIFO_LENGTH];
+char* dataTags[NUM_LIFOS] = {"ACCEL_X", "ACCEL_Y", "ACCEL_Z", "GYRO_X", "GYRO_Y", "GYRO_Z", "MAG_X", "MAG_Y", "MAG_Z", "ALTITUDE", "PRESSURE", "TEMPERATURE", "STRATO"};
+int lifoTops[NUM_LIFOS];
 
-void getMostRecentReadings(float values[]);
+void getMostRecentReadings(int numReadings, float *values[NUM_LIFOS], uint32_t *timeStamps[NUM_LIFOS]);
 
-bool getFifo(int fifoNum, float* elem);
-bool putFifo(int fifoNum, float newElem);
+bool getLifo(int lifoNum, float* elem, uint32_t* timeStamp);
+bool putLifo(int lifoNum, float newElem);
+
+#define LAUNCH_THRESHOLD 10000
 
 #include <SPI.h>
 #include <Wire.h>
@@ -43,7 +48,7 @@ bool putFifo(int fifoNum, float newElem);
 // LSM9DS1 Includes and Variables Definitions
 #include <SparkFunLSM9DS1.h>
 LSM9DS1 imu;
-#define LSM9DS1_M  0x1E // Would be 0x1C if SDO_M is LOW
+#define LSM9DS1_M  0x1E // Wosesuld be 0x1C if SDO_M is LOW
 #define LSM9DS1_AG  0x6B // Would be 0x6A if SDO_AG is LOW
 #define DECLINATION 3.44 // http://www.ngdc.noaa.gov/geomag-web/#declination
 
@@ -59,28 +64,35 @@ Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
 void updateBaroReadings();
 
 // Stratologer Includes and Variable Definitions
+//#include <SoftwareSerial.h>
+//#define STRATO_SERIAL_RX 0
+//#define STRATO_SERIAL_TX 1
+//SoftwareSerial stratoSerial(STRATO_SERIAL_RX, STRATO_SERIAL_TX); // RX, TX
+//Stratologger uses the normal serial lines so don't need to do anything
 
 // SD card Includes and Variable Defintions
 #include <SD.h>
+#define WRITE_BACK_THRESHOLD 240
+int dataPointsSaved = 0;
+
+File dataFile;
 
 // Timer Includes and Definitions
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
 IntervalTimer stratoTimer;
 IntervalTimer accelTimer;
 IntervalTimer baroTimer;
 
-void stratoHandler();
-void baroHandler();
-void accelHandler();
-
-void updateGyroReadings();
-void updateMagReadings();
-
-void updateLSMreadings();
-void updateADXreadings();
-
 void setup() 
 {
   Serial.begin(9600);
+  //stratoSerial.begin(9600);
+
+  SD.begin(BUILTIN_SDCARD);
+  setupDatalog();// set up data log file
+  
   imu.settings.device.commInterface = IMU_MODE_I2C;
   imu.settings.device.mAddress = LSM9DS1_M;
   imu.settings.device.agAddress = LSM9DS1_AG;
@@ -88,60 +100,80 @@ void setup()
 
   baro.begin();
 
+  // This is prototype code for waiting to log data until the rocket is ready to take off
+  // Please leave it in
+  /*updateAccelReadings(); 
+
+  float elem;
+  uint32_t timeStamp;
+  getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
+  while(elem < LAUNCH_THRESHOLD)
+  {
+   updateAccelReadings(); 
+   getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
+  }*/
+  
   stratoTimer.begin(stratoHandler, 50000);
   accelTimer.begin(accelHandler, 12500);
   baroTimer.begin(baroHandler, 12500);
+  interrupts();
 }
 
-void updateSensorReadings()
+void loop() 
+{
+
+}
+
+void updateSensorReadingslog()
 {
   updateAccelReadings();
   updateGyroReadings();
   updateMagReadings();
   updateBaroReadings();
+  updateStratoReadings();
 }
 
-void loop()
+// Lifo functions
+bool getLifoElements(int lifoNum, int numReadings, float elems[LIFO_LENGTH], uint32_t tStamps[LIFO_LENGTH])
 {
-  updateSensorReadings();
+  if(numReadings > LIFO_LENGTH) {numReadings = LIFO_LENGTH;}
+  for(int i = 0; i < numReadings; i++)
+  {
+    elems[i] = lifos[lifoNum][i];
+    tStamps[i] = timeStamps[lifoNum][i];
+  }
+  return 1;
+    
+} 
+
+bool getLifo(int lifoNum, float* elem, uint32_t *timeStamp)
+{
+  *elem = lifos[lifoNum][0];
+  *timeStamp = timeStamps[lifoNum][0];
+  return 1;
 }
 
-// Fifo functions
-bool getFifo(int fifoNum, float* elem)
+bool putLifo(int lifoNum, float newElem)
 {
-  if(fifoIndicies[fifoNum][0] == fifoIndicies[fifoNum][1]) 
+  cli();
+  dataPointsSaved += 1;
+  for(int i = LIFO_LENGTH - 1; i > 0; i--)
   {
-    *elem = 0;
-    return false;
-  }
-  else
-  {
-    int getIndex = fifoIndicies[fifoNum][0];
-    *elem = fifos[fifoNum][getIndex];
-    fifoIndicies[fifoNum][0] = (getIndex + 1) % FIFO_LENGTH;
-    return true;
-  }
-}
-
-bool putFifo(int fifoNum, float newElem)
-{
-  if((fifoIndicies[fifoNum][1] + 1) % FIFO_LENGTH == fifoIndicies[fifoNum][0]) 
-  {
-     return false;
-  }
-  else
-  {
-     int putIndex = fifoIndicies[fifoNum][1];
-     fifos[fifoNum][putIndex] = newElem;
-     fifoIndicies[fifoNum][1] = (putIndex + 1) % FIFO_LENGTH;
-     return true;
-  }
+    lifos[lifoNum][i] = lifos[lifoNum][i - 1];
+    timeStamps[lifoNum][i] = timeStamps[lifoNum][i - 1];
+  }  
+  lifos[lifoNum][0] = newElem;
+  timeStamps[lifoNum][0] = millis();
+  sei();
+  return 1;
 }
 
 // Accel functions
 void accelHandler()
 {
-  
+  updateAccelReadings();
+  updateGyroReadings();
+  updateMagReadings();
 }
 
 void updateAccelReadings()
@@ -163,9 +195,13 @@ void updateLSMreadings()
    if (imu.accelAvailable())
    {
     imu.readAccel();
-    putFifo(ACCEL_X_FIFO, imu.ax);
-    putFifo(ACCEL_Y_FIFO, imu.ay);
-    putFifo(ACCEL_Z_FIFO, imu.az);
+    putLifo(ACCEL_X_LIFO, imu.ax);
+    putLifo(ACCEL_Y_LIFO, imu.ay);
+    putLifo(ACCEL_Z_LIFO, imu.az);
+    uint32_t timeStamp = millis();
+    logDataPoint(ACCEL_X_LIFO, imu.ax, timeStamp);
+    logDataPoint(ACCEL_Y_LIFO, imu.ay, timeStamp);
+    logDataPoint(ACCEL_Z_LIFO, imu.az, timeStamp);
    } 
 }
 
@@ -179,18 +215,27 @@ void updateADXreadings()
   float ax = map(rawX, 0, 1023, -scale, scale); // maps readings from 0 to 5v to -200 to 200 G's 
   float ay = map(rawY, 0, 1023, -scale, scale);
   float az = map(rawZ, 0, 1023, -scale, scale);
-  putFifo(ACCEL_X_FIFO, ax);
-  putFifo(ACCEL_Y_FIFO, ay);
-  putFifo(ACCEL_Z_FIFO, az);
+  putLifo(ACCEL_X_LIFO, ax);
+  putLifo(ACCEL_Y_LIFO, ay);
+  putLifo(ACCEL_Z_LIFO, az);
+  uint32_t timeStamp = millis();
+  logDataPoint(ACCEL_X_LIFO, ax, timeStamp);
+  logDataPoint(ACCEL_Y_LIFO, ay, timeStamp);
+  logDataPoint(ACCEL_Z_LIFO, az, timeStamp);
 }
 
-void updateGyroReadings() {
+void updateGyroReadings()
+{
   if (imu.gyroAvailable())
   {
     imu.readGyro();
-    putFifo(GYRO_X_FIFO, imu.gx);
-    putFifo(GYRO_Y_FIFO, imu.gy);
-    putFifo(GYRO_Z_FIFO, imu.gz);
+    putLifo(GYRO_X_LIFO, imu.gx);
+    putLifo(GYRO_Y_LIFO, imu.gy);
+    putLifo(GYRO_Z_LIFO, imu.gz);
+    uint32_t timeStamp = millis();
+    logDataPoint(GYRO_X_LIFO, imu.gx, timeStamp);
+    logDataPoint(GYRO_Y_LIFO, imu.gy, timeStamp);
+    logDataPoint(GYRO_Z_LIFO, imu.gz, timeStamp);
   }
 }
 
@@ -199,39 +244,107 @@ void updateMagReadings()
   if (imu.magAvailable())
   {
     imu.readMag();
-    putFifo(MAG_X_FIFO, imu.mx);
-    putFifo(MAG_Y_FIFO, imu.my);
-    putFifo(MAG_Z_FIFO, imu.mz);
+    putLifo(MAG_X_LIFO, imu.mx);
+    putLifo(MAG_Y_LIFO, imu.my);
+    putLifo(MAG_Z_LIFO, imu.mz);
+    uint32_t timeStamp = millis();
+    logDataPoint(MAG_X_LIFO, imu.mx, timeStamp);
+    logDataPoint(MAG_Y_LIFO, imu.my, timeStamp);
+    logDataPoint(MAG_Z_LIFO, imu.mz, timeStamp);
   }
 }
 
 // Barometer functions
 void baroHandler()
 {
-  
+  updateBaroReadings();
 }
 
 void updateBaroReadings()
 {
-  putFifo(BARO_ALT_FIFO, baro.getAltitude());
-  putFifo(BARO_PRESS_FIFO, baro.getPressure());
-  putFifo(BARO_TEMP_FIFO, baro.getTemperature());
+  putLifo(BARO_ALT_LIFO, baro.getAltitude());
+  putLifo(BARO_PRESS_LIFO, baro.getPressure());
+  putLifo(BARO_TEMP_LIFO, baro.getTemperature());
+  uint32_t timeStamp = millis();
+  logDataPoint(BARO_ALT_LIFO, baro.getAltitude(), timeStamp);
+  logDataPoint(BARO_PRESS_LIFO, baro.getTemperature(), timeStamp);
+  logDataPoint(BARO_TEMP_LIFO, baro.getAltitude(), timeStamp);
 }
 
-void getMostRecentReadings(float values[])
+void getMostRecentReadings(int numReadings, float *values[NUM_LIFOS], uint32_t *timeStamps[NUM_LIFOS])
 {
-  for(int i = 0; i < NUM_FIFOS; i++)
+  for(int i = 0; i < NUM_LIFOS; i++)
   {
-    float elem;
-    getFifo(i, &elem);
-    values[i] = elem;
+    float elems[numReadings];
+    uint32_t tStamps[numReadings];
+    getLifoElements(i, numReadings, elems, tStamps);
+    values[i] = elems;
+    timeStamps[i] = tStamps;
   }
 }
 
 // Strato functions
+void updateStratoReadings()
+{
+    String message;
+    char lastChar = 'a';
+    while(lastChar != '\n')
+    {
+      char lastChar = Serial.read();
+      message += (char)lastChar;     
+    }
+    float value = message.toFloat();
+    putLifo(STRATO_LIFO, value);
+    logDataPoint(STRATO_LIFO, value, millis());
+}
+
 void stratoHandler()
 {
-  
+  updateStratoReadings(); 
+}
+
+// SD card functions
+void setupDatalog()
+{
+    dataFile = SD.open("datalog.txt", FILE_WRITE);
+    dataFile.println("");
+    dataFile.println("__New Launch__");
+    dataFile.close();
+}
+
+void logData()
+{
+  noInterrupts();
+  dataPointsSaved -= WRITE_BACK_THRESHOLD;
+  dataFile = SD.open("datalog.txt", FILE_WRITE);
+  for(int lifoNum = 0; lifoNum < NUM_LIFOS; lifoNum++)
+  {
+    float elems[LIFO_LENGTH];
+    uint32_t tStamps[LIFO_LENGTH];
+    int pointsToWriteBack = (WRITE_BACK_THRESHOLD / 180) * 20;
+    getLifoElements(lifoNum, pointsToWriteBack, elems, tStamps);
+    for(int i = 0; i < pointsToWriteBack; i++)
+    {
+      dataFile.print(dataTags[lifoNum]);
+      dataFile.print(',');   
+      dataFile.print(elems[i]);
+      dataFile.print(',');     
+      dataFile.println(tStamps[i]); 
+    }
+  }
+  dataFile.close();
+  interrupts();
+}
+
+void logDataPoint(int lifoNum, float elem, uint32_t tStamp)
+{
+      dataFile = SD.open("datalog.txt", FILE_WRITE);
+      dataFile.print(dataTags[lifoNum]);
+      dataFile.print(',');   
+      dataFile.print(elem);
+      dataFile.print(',');     
+      dataFile.println(tStamp); 
+      dataFile.close();
 }
 
 #else
