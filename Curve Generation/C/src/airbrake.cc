@@ -1,11 +1,30 @@
+/**
+ * @file airbrake.cc
+ *
+ * @brief Entrypoint for the airbraking code 
+ * 
+ */
+
+#include <memory>
+#include <string>
+
+#ifdef ARDUINO
+  #include <Arduino.h>
+#endif
 
 #include "constant_area_drag_calculator.h"
 #include "density_calculator.h"
 #include "acceleration_calculator.h"
 
-#ifdef ARDUINO
+#include "barometer.h"
 
-#include <Arduino.h>
+#ifdef GROUND_TEST
+#include "mock_barometer_mpl.h"
+#else
+#include "barometer_mpl.h"
+#endif // GROUND_TEST
+
+#ifdef ARDUINO
 
 // Global flags to configure code
 #define ACCEL_NUMBER  1  // a flag that contains the number code for which accelerometer chip we are using 
@@ -31,7 +50,7 @@ void updateAccelReadings();
 
 float lifos[NUM_LIFOS][LIFO_LENGTH]; // One Lifo for each sensor
 uint32_t timeStamps[NUM_LIFOS][LIFO_LENGTH];
-char* dataTags[NUM_LIFOS] = {"ACCEL_X", "ACCEL_Y", "ACCEL_Z", "GYRO_X", "GYRO_Y", "GYRO_Z", "MAG_X", "MAG_Y", "MAG_Z", "ALTITUDE", "PRESSURE", "TEMPERATURE", "STRATO"};
+std::string dataTags[NUM_LIFOS] = { "ACCEL_X", "ACCEL_Y", "ACCEL_Z", "GYRO_X", "GYRO_Y", "GYRO_Z", "MAG_X", "MAG_Y", "MAG_Z", "ALTITUDE", "PRESSURE", "TEMPERATURE", "STRATO" };
 int lifoTops[NUM_LIFOS];
 
 void getMostRecentReadings(int numReadings, float *values[NUM_LIFOS], uint32_t *timeStamps[NUM_LIFOS]);
@@ -58,9 +77,14 @@ int scale = 200; //can read from -200 to 200 G's
 #define ADX_Y_PIN A1
 #define ADX_Z_PIN A2
 
-// Barometer Includes and Variable Definitions
-#include <Adafruit_MPL3115A2.h>
-Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
+std::shared_ptr<Barometer> kBaro = std::shared_ptr<Barometer>(
+#ifdef GROUND_TEST
+  new MockBarometerWrapper()
+#else
+  new BarometerWrapper()
+#endif
+);
+
 void updateBaroReadings();
 
 // Stratologer Includes and Variable Definitions
@@ -85,44 +109,9 @@ IntervalTimer stratoTimer;
 IntervalTimer accelTimer;
 IntervalTimer baroTimer;
 
-void setup() 
-{
-  Serial.begin(9600);
-  //stratoSerial.begin(9600);
-
-  SD.begin(BUILTIN_SDCARD);
-  setupDatalog();// set up data log file
-  
-  imu.settings.device.commInterface = IMU_MODE_I2C;
-  imu.settings.device.mAddress = LSM9DS1_M;
-  imu.settings.device.agAddress = LSM9DS1_AG;
-  imu.begin();
-
-  baro.begin();
-
-  // This is prototype code for waiting to log data until the rocket is ready to take off
-  // Please leave it in
-  /*updateAccelReadings(); 
-
-  float elem;
-  uint32_t timeStamp;
-  getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
-  while(elem < LAUNCH_THRESHOLD)
-  {
-   updateAccelReadings(); 
-   getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
-  }*/
-  
-  stratoTimer.begin(stratoHandler, 50000);
-  accelTimer.begin(accelHandler, 12500);
-  baroTimer.begin(baroHandler, 12500);
-  interrupts();
-}
-
-void loop() 
-{
-
-}
+void updateGyroReadings();
+void updateMagReadings();
+void updateStratoReadings();
 
 void updateSensorReadingslog()
 {
@@ -161,11 +150,13 @@ bool putLifo(int lifoNum, float newElem)
   {
     lifos[lifoNum][i] = lifos[lifoNum][i - 1];
     timeStamps[lifoNum][i] = timeStamps[lifoNum][i - 1];
-  }  
+  }
+
   lifos[lifoNum][0] = newElem;
   timeStamps[lifoNum][0] = millis();
   sei();
-  return 1;
+
+  return true;
 }
 
 // Accel functions
@@ -175,6 +166,9 @@ void accelHandler()
   updateGyroReadings();
   updateMagReadings();
 }
+
+void updateLSMreadings();
+void updateADXreadings();
 
 void updateAccelReadings()
 {
@@ -188,6 +182,17 @@ void updateAccelReadings()
    updateADXreadings();   
    break;
   }
+}
+
+void logDataPoint(int lifoNum, float elem, uint32_t tStamp)
+{
+      dataFile = SD.open("datalog.txt", FILE_WRITE);
+      dataFile.print(dataTags[lifoNum].c_str());
+      dataFile.print(',');   
+      dataFile.print(elem);
+      dataFile.print(',');     
+      dataFile.println(tStamp); 
+      dataFile.close();
 }
 
 void updateLSMreadings()
@@ -262,13 +267,15 @@ void baroHandler()
 
 void updateBaroReadings()
 {
-  putLifo(BARO_ALT_LIFO, baro.getAltitude());
-  putLifo(BARO_PRESS_LIFO, baro.getPressure());
-  putLifo(BARO_TEMP_LIFO, baro.getTemperature());
+  struct BarometerData data = kBaro->Read();
+  putLifo(BARO_ALT_LIFO, data.altitude);
+  putLifo(BARO_PRESS_LIFO, data.pressure);
+  putLifo(BARO_TEMP_LIFO, data.temperature);
+
   uint32_t timeStamp = millis();
-  logDataPoint(BARO_ALT_LIFO, baro.getAltitude(), timeStamp);
-  logDataPoint(BARO_PRESS_LIFO, baro.getTemperature(), timeStamp);
-  logDataPoint(BARO_TEMP_LIFO, baro.getAltitude(), timeStamp);
+  logDataPoint(BARO_ALT_LIFO, data.altitude, timeStamp);
+  logDataPoint(BARO_PRESS_LIFO, data.pressure, timeStamp);
+  logDataPoint(BARO_TEMP_LIFO, data.temperature, timeStamp);
 }
 
 void getMostRecentReadings(int numReadings, float *values[NUM_LIFOS], uint32_t *timeStamps[NUM_LIFOS])
@@ -325,7 +332,7 @@ void logData()
     getLifoElements(lifoNum, pointsToWriteBack, elems, tStamps);
     for(int i = 0; i < pointsToWriteBack; i++)
     {
-      dataFile.print(dataTags[lifoNum]);
+      dataFile.print(dataTags[lifoNum].c_str());
       dataFile.print(',');   
       dataFile.print(elems[i]);
       dataFile.print(',');     
@@ -336,19 +343,59 @@ void logData()
   interrupts();
 }
 
-void logDataPoint(int lifoNum, float elem, uint32_t tStamp)
+
+void setup() 
 {
-      dataFile = SD.open("datalog.txt", FILE_WRITE);
-      dataFile.print(dataTags[lifoNum]);
-      dataFile.print(',');   
-      dataFile.print(elem);
-      dataFile.print(',');     
-      dataFile.println(tStamp); 
-      dataFile.close();
+  Serial.begin(9600);
+  //stratoSerial.begin(9600);
+
+  SD.begin(BUILTIN_SDCARD);
+  setupDatalog();// set up data log file
+  
+
+  imu.settings.device.commInterface = IMU_MODE_I2C;
+  imu.settings.device.mAddress = LSM9DS1_M;
+  imu.settings.device.agAddress = LSM9DS1_AG;
+  imu.begin();
+
+  kBaro->Initialize();
+
+  // This is prototype code for waiting to log data until the rocket is ready to take off
+  // Please leave it in
+  /*updateAccelReadings(); 
+
+  float elem;
+  uint32_t timeStamp;
+  getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
+  while(elem < LAUNCH_THRESHOLD)
+  {
+   updateAccelReadings(); 
+   getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
+  }*/
+  
+  stratoTimer.begin(stratoHandler, 50000);
+  accelTimer.begin(accelHandler, 12500);
+  baroTimer.begin(baroHandler, 12500);
+  interrupts();
+}
+
+void loop() 
+{
+
 }
 
 #else
 
-int main(int argc, char* argv[]) {}
+int main(int argc, char* argv[]) {
+
+  std::shared_ptr<Barometer> kBaro = std::shared_ptr<Barometer>(
+#ifdef GROUND_TEST
+    new MockBarometerWrapper());
+#else
+    new BarometerWrapper());
+#endif // GROUND_TEST
+
+  kBaro->Initialize();
+}
 
 #endif
