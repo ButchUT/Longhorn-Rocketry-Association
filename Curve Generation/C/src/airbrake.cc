@@ -1,8 +1,8 @@
 /**
  * @file airbrake.cc
  *
- * @brief Entrypoint for the airbraking code 
- * 
+ * @brief Entrypoint for the airbraking code
+ *
  */
 
 #include <memory>
@@ -17,20 +17,22 @@
 #include "acceleration_calculator.h"
 
 #include "barometer.h"
+#include "imu.h"
 
 #ifdef GROUND_TEST
-#include "mock_barometer_mpl.h"
+  #include "mock_barometer_mpl.h"
+  #include "mock_imu_mpl.h"
 #else
-#include "barometer_mpl.h"
+  #include "barometer_mpl.h"
+  #include "imu_mpl.h"
 #endif // GROUND_TEST
 
 #ifdef ARDUINO
 
 // Global flags to configure code
-#define ACCEL_NUMBER  1  // a flag that contains the number code for which accelerometer chip we are using 
+#define ACCEL_NUMBER  1  // a flag that contains the number code for which accelerometer chip we are using
 #define USING_LSM     0
 #define USING_ADX     1
-void updateAccelReadings();
 
 #define LIFO_LENGTH       200
 #define NUM_LIFOS          13
@@ -65,11 +67,12 @@ bool putLifo(int lifoNum, float newElem);
 #include <Adafruit_Sensor.h>
 
 // LSM9DS1 Includes and Variables Definitions
-#include <SparkFunLSM9DS1.h>
-LSM9DS1 imu;
-#define LSM9DS1_M  0x1E // Wosesuld be 0x1C if SDO_M is LOW
-#define LSM9DS1_AG  0x6B // Would be 0x6A if SDO_AG is LOW
-#define DECLINATION 3.44 // http://www.ngdc.noaa.gov/geomag-web/#declination
+std::shared_ptr<Imu> kImu = std::shared_ptr<Imu>(
+#ifdef GROUND_TEST
+  new MockImuWrapper()
+#else
+  new ImuWrapper()
+);
 
 // ADX Includes and Variable Definitions
 int scale = 200; //can read from -200 to 200 G's
@@ -109,15 +112,14 @@ IntervalTimer stratoTimer;
 IntervalTimer accelTimer;
 IntervalTimer baroTimer;
 
-void updateGyroReadings();
-void updateMagReadings();
+void updateImuReadings();
+void updateLSMReadings();
+void updateADXReadings();
 void updateStratoReadings();
 
 void updateSensorReadingslog()
 {
-  updateAccelReadings();
-  updateGyroReadings();
-  updateMagReadings();
+  updateImuReadings();
   updateBaroReadings();
   updateStratoReadings();
 }
@@ -132,8 +134,8 @@ bool getLifoElements(int lifoNum, int numReadings, float elems[LIFO_LENGTH], uin
     tStamps[i] = timeStamps[lifoNum][i];
   }
   return 1;
-    
-} 
+
+}
 
 bool getLifo(int lifoNum, float* elem, uint32_t *timeStamp)
 {
@@ -159,18 +161,8 @@ bool putLifo(int lifoNum, float newElem)
   return true;
 }
 
-// Accel functions
-void accelHandler()
-{
-  updateAccelReadings();
-  updateGyroReadings();
-  updateMagReadings();
-}
-
-void updateLSMreadings();
-void updateADXreadings();
-
-void updateAccelReadings()
+// IMU functions
+void updateImuReadings()
 {
   switch(ACCEL_NUMBER)
   {
@@ -179,35 +171,52 @@ void updateAccelReadings()
    break;
 
    case USING_ADX:
-   updateADXreadings();   
+   updateADXreadings();
    break;
   }
+}
+
+void imuHandler()
+{
+  updateImuReadings();
 }
 
 void logDataPoint(int lifoNum, float elem, uint32_t tStamp)
 {
       dataFile = SD.open("datalog.txt", FILE_WRITE);
       dataFile.print(dataTags[lifoNum].c_str());
-      dataFile.print(',');   
+      dataFile.print(',');
       dataFile.print(elem);
-      dataFile.print(',');     
-      dataFile.println(tStamp); 
+      dataFile.print(',');
+      dataFile.println(tStamp);
       dataFile.close();
 }
 
-void updateLSMreadings()
+void updateLSMReadings()
 {
-   if (imu.accelAvailable())
-   {
-    imu.readAccel();
-    putLifo(ACCEL_X_LIFO, imu.ax);
-    putLifo(ACCEL_Y_LIFO, imu.ay);
-    putLifo(ACCEL_Z_LIFO, imu.az);
-    uint32_t timeStamp = millis();
-    logDataPoint(ACCEL_X_LIFO, imu.ax, timeStamp);
-    logDataPoint(ACCEL_Y_LIFO, imu.ay, timeStamp);
-    logDataPoint(ACCEL_Z_LIFO, imu.az, timeStamp);
-   } 
+  struct ImuData data = kImu->Read();
+
+  putLifo(GYRO_X_LIFO, data.gx);
+  putLifo(GYRO_Y_LIFO, data.gy);
+  putLifo(GYRO_Z_LIFO, data.gz);
+  putLifo(ACCEL_X_LIFO, data.ax);
+  putLifo(ACCEL_Y_LIFO, data.ay);
+  putLifo(ACCEL_Z_LIFO, data.az);
+  putLifo(MAG_X_LIFO, data.mx);
+  putLifo(MAG_Y_LIFO, data.my);
+  putLifo(MAG_Z_LIFO, data.mz);
+
+  uint32_t timeStamp = millis();
+
+  logDataPoint(GYRO_X_LIFO, data.gx, timeStamp);
+  logDataPoint(GYRO_Y_LIFO, data.gy, timeStamp);
+  logDataPoint(GYRO_Z_LIFO, data.gz, timeStamp);
+  logDataPoint(ACCEL_X_LIFO, data.ax, timeStamp);
+  logDataPoint(ACCEL_Y_LIFO, data.ay, timeStamp);
+  logDataPoint(ACCEL_Z_LIFO, data.az, timeStamp);
+  logDataPoint(MAG_X_LIFO, data.mx, timeStamp);
+  logDataPoint(MAG_Y_LIFO, data.my, timeStamp);
+  logDataPoint(MAG_Z_LIFO, data.mz, timeStamp);
 }
 
 void updateADXreadings()
@@ -217,7 +226,7 @@ void updateADXreadings()
   int rawY = analogRead(ADX_Y_PIN);
   int rawZ = analogRead(ADX_Z_PIN);
 
-  float ax = map(rawX, 0, 1023, -scale, scale); // maps readings from 0 to 5v to -200 to 200 G's 
+  float ax = map(rawX, 0, 1023, -scale, scale); // maps readings from 0 to 5v to -200 to 200 G's
   float ay = map(rawY, 0, 1023, -scale, scale);
   float az = map(rawZ, 0, 1023, -scale, scale);
   putLifo(ACCEL_X_LIFO, ax);
@@ -227,36 +236,6 @@ void updateADXreadings()
   logDataPoint(ACCEL_X_LIFO, ax, timeStamp);
   logDataPoint(ACCEL_Y_LIFO, ay, timeStamp);
   logDataPoint(ACCEL_Z_LIFO, az, timeStamp);
-}
-
-void updateGyroReadings()
-{
-  if (imu.gyroAvailable())
-  {
-    imu.readGyro();
-    putLifo(GYRO_X_LIFO, imu.gx);
-    putLifo(GYRO_Y_LIFO, imu.gy);
-    putLifo(GYRO_Z_LIFO, imu.gz);
-    uint32_t timeStamp = millis();
-    logDataPoint(GYRO_X_LIFO, imu.gx, timeStamp);
-    logDataPoint(GYRO_Y_LIFO, imu.gy, timeStamp);
-    logDataPoint(GYRO_Z_LIFO, imu.gz, timeStamp);
-  }
-}
-
-void updateMagReadings()
-{
-  if (imu.magAvailable())
-  {
-    imu.readMag();
-    putLifo(MAG_X_LIFO, imu.mx);
-    putLifo(MAG_Y_LIFO, imu.my);
-    putLifo(MAG_Z_LIFO, imu.mz);
-    uint32_t timeStamp = millis();
-    logDataPoint(MAG_X_LIFO, imu.mx, timeStamp);
-    logDataPoint(MAG_Y_LIFO, imu.my, timeStamp);
-    logDataPoint(MAG_Z_LIFO, imu.mz, timeStamp);
-  }
 }
 
 // Barometer functions
@@ -298,7 +277,7 @@ void updateStratoReadings()
     while(lastChar != '\n')
     {
       char lastChar = Serial.read();
-      message += (char)lastChar;     
+      message += (char)lastChar;
     }
     float value = message.toFloat();
     putLifo(STRATO_LIFO, value);
@@ -307,7 +286,7 @@ void updateStratoReadings()
 
 void stratoHandler()
 {
-  updateStratoReadings(); 
+  updateStratoReadings();
 }
 
 // SD card functions
@@ -333,10 +312,10 @@ void logData()
     for(int i = 0; i < pointsToWriteBack; i++)
     {
       dataFile.print(dataTags[lifoNum].c_str());
-      dataFile.print(',');   
+      dataFile.print(',');
       dataFile.print(elems[i]);
-      dataFile.print(',');     
-      dataFile.println(tStamps[i]); 
+      dataFile.print(',');
+      dataFile.println(tStamps[i]);
     }
   }
   dataFile.close();
@@ -344,42 +323,38 @@ void logData()
 }
 
 
-void setup() 
+void setup()
 {
   Serial.begin(9600);
   //stratoSerial.begin(9600);
 
   SD.begin(BUILTIN_SDCARD);
   setupDatalog();// set up data log file
-  
 
-  imu.settings.device.commInterface = IMU_MODE_I2C;
-  imu.settings.device.mAddress = LSM9DS1_M;
-  imu.settings.device.agAddress = LSM9DS1_AG;
-  imu.begin();
+  kImu->Initialize();
 
   kBaro->Initialize();
 
   // This is prototype code for waiting to log data until the rocket is ready to take off
   // Please leave it in
-  /*updateAccelReadings(); 
+  /*updateAccelReadings();
 
   float elem;
   uint32_t timeStamp;
   getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
   while(elem < LAUNCH_THRESHOLD)
   {
-   updateAccelReadings(); 
+   updateAccelReadings();
    getLifo(ACCEL_Z_LIFO, &elem, &timeStamp);
   }*/
-  
+
   stratoTimer.begin(stratoHandler, 50000);
-  accelTimer.begin(accelHandler, 12500);
+  accelTimer.begin(imuHandler, 12500);
   baroTimer.begin(baroHandler, 12500);
   interrupts();
 }
 
-void loop() 
+void loop()
 {
 
 }
