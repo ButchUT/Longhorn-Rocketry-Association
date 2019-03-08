@@ -74,6 +74,20 @@ public:
   void advance(float delta_t);
 
   /**
+    Gets the current timestep of the simulation.
+
+    @return time
+  */
+  float get_time();
+
+  /**
+    Sets the rocket's airbrake position.
+
+    @param x position on [0.0, 1.0]
+  */
+  void set_airbrake_extension(float x);
+
+  /**
     Assigns a noise generator to acceleration readings on one axis.
 
     @param gen generator

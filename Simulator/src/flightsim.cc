@@ -30,6 +30,7 @@ void FlightSimulator::begin(float time_initial, float duration) {
   sim_running = true;
   rocket_velocity = rocket_data.burnout_velocity;
   rocket_altitude = rocket_data.burnout_altitude;
+  rocket_acceleration = 0;
 }
 
 bool FlightSimulator::is_running() {
@@ -44,17 +45,24 @@ void FlightSimulator::advance(float delta_t) {
   if (sim_running && t_c >= t_f)
     sim_running = false;
 
-  // Compute drag force and jerk
+  // Compute drag force
   float airbrake_area = airbrake_extension * rocket_data.airbrake_area;
   float r = sqrt(rocket_data.radius * rocket_data.radius + airbrake_area / _PI);
   float force_drag = calculate_drag(rocket_data.initial_altitude,
     rocket_altitude, r, rocket_data.drag_coeff, rocket_velocity);
-  float delta_accel = -force_drag / rocket_data.burnout_mass - GRAVITY;
 
   // Extrapolate rocket state
-  rocket_acceleration += delta_accel * delta_t;
+  rocket_acceleration = -force_drag / rocket_data.burnout_mass - GRAVITY;
   rocket_velocity += rocket_acceleration * delta_t;
   rocket_altitude += rocket_velocity * delta_t;
+}
+
+float FlightSimulator::get_time() {
+  return t_c;
+}
+
+void FlightSimulator::set_airbrake_extension(float x) {
+  airbrake_extension = x;
 }
 
 void FlightSimulator::set_accel_noise(int axis, NoiseGenerator *gen) {
@@ -90,7 +98,7 @@ void FlightSimulator::clear_gyro_noise() {
 }
 
 std::vector<float> FlightSimulator::get_acceleration() const {
-  std::vector<float> accel = std::vector<float>(3);
+  std::vector<float> accel = std::vector<float>(flightsim::AXES_COUNT);
   // Z axis receives the full magnitude of the acceleration vector because
   // the simulator is only 1D. Noise is still applied to the other axes if
   // configured
@@ -104,8 +112,8 @@ std::vector<float> FlightSimulator::get_acceleration() const {
 
 std::vector<float> FlightSimulator::get_gyro() const {
   // True vector is all 0s; at the moment, the simulated rocket is "perfect"
-  // and cannot roll
-  std::vector<float> gyro = std::vector<float>(3);
+  // and cannot roll. Noise is added regardless
+  std::vector<float> gyro = std::vector<float>(flightsim::AXES_COUNT);
 
   for (int i = 0; i < flightsim::AXES_COUNT; i++)
     gyro[i] += gyro_noise[i]->gen(t_c);
