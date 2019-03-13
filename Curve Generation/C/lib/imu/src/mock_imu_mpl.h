@@ -7,6 +7,7 @@
   #include <random>
 #endif
 
+#include "flightsim.h"
 #include "imu.h"
 #include <string>
 
@@ -29,8 +30,11 @@ public:
 
   struct ImuData Read() const;
 
-#ifndef ARDUINO
+  void AttachSimulator(FlightSimulator *sim);
+
 protected:
+  FlightSimulator *flightsim = nullptr;
+#ifndef ARDUINO
   static std::default_random_engine generator_;
   static std::uniform_real_distribution<float> gyro_distribution_;
   static std::uniform_real_distribution<float> accel_distribution_;

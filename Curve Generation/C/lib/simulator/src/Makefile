@@ -1,4 +1,4 @@
-LIB_PATH = ../../Curve\ Generation/C/lib
+LIB_PATH = ../../
 VERLET_PATH = $(LIB_PATH)/verlet_integrator/src
 ACCELCALC_PATH = $(LIB_PATH)/acceleration_calculator/src
 DRAGCALC_PATH = $(LIB_PATH)/constant_area_drag_calculator/src

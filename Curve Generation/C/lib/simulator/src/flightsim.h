@@ -53,7 +53,7 @@ public:
   ~FlightSimulator();
 
   /**
-    Starts the simulation. Ideally this is called once, followed by repeated
+    Starts the simulation. This should be called once, followed by repeated
     calls to advance().
 
     @param time_initial instant of simulation start
