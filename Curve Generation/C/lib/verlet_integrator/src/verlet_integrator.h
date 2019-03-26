@@ -75,25 +75,25 @@ public:
   /**
    * @brief Construct a new Verlet Integrator object
    *
-   * @param initialization_data Struct of initialization variables 
+   * @param initialization_data Struct of initialization variables
    */
   VerletIntegrator(struct InitializationData initialization_data);
 
   /**
    * @brief Calculate velocity at the given index in the data array
-   * 
+   *
    * @param data_array Array of calculated altitude data
    * @param data_array_size
    * @param index Location requested for velocity calculation. Must be less
    *  than or equal to `data_array_size`
-   * @return double 
+   * @return double
    */
   double CalculateVelocity(double *data_array, std::size_t data_array_size,
                            unsigned int index, double timestep);
 
   /**
    * @brief Simulate altitude for the *n* timesteps
-   * 
+   *
    * @param data_array array of data where the results will be stored
    * @param data_array_size size of data array
    */
@@ -102,30 +102,41 @@ public:
                 const struct AccelerationCalculationData &acceleration_data);
 
   /**
+   * Generates a curve until negative velocity is encountered. For rockets
+   * burning out at around Mach 3, timestep should be 0.01 or smaller for best
+   * results.
+   *
+   * @param timestep time resolution
+   * @return predicted apogee
+   */
+  double SimulateApogee(double timestep, const struct
+    AccelerationCalculationData &acceleration_data);
+
+  /**
    * @brief Access teh initial_value property
-   * 
-   * @return double 
+   *
+   * @return double
    */
   double initial_value() const;
 
   /**
    * @brief Access the initial_velocity property
-   * 
-   * @return double 
+   *
+   * @return double
    */
   double initial_velocity() const;
 
   /**
    * @brief Access the acceleration_error_constant property
-   * 
-   * @return double 
+   *
+   * @return double
    */
   double acceleration_error_constant() const;
 
   /**
    * @brief Access the start_time property
-   * 
-   * @return double 
+   *
+   * @return double
    */
   double start_time() const;
 
