@@ -65,8 +65,8 @@ const double kT_0 = 288.15;
 const double kP_0 = 101.325;
 
 double calculate_density(double start_height, double height) {
-  assert(start_height >= 0);
-  assert(height >= 0);
+  /*assert(start_height >= 0);
+  assert(height >= 0);*/
 
   double altitude = start_height + height;
   double temperature = kT_0 - kL * altitude;
