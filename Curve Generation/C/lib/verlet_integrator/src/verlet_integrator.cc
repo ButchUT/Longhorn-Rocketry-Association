@@ -69,43 +69,26 @@ void VerletIntegrator::Simulate(double *data_array, std::size_t data_array_size,
 double VerletIntegrator::SimulateApogee(double timestep,
   const struct AccelerationCalculationData &acceleration_data) {
 
-  std::vector<double> data_array;
-  data_array.push_back(initial_value());
-  data_array.push_back(data_array[0] + initial_velocity() * timestep);
-  data_array.push_back(0.0); // Extra index required by CalculateVelocity
+  double altitude = initial_value();
+  double velocity = initial_velocity();
 
-  double altitude = initial_value(), velocity = 0;
-  int i = 2;
-
-  do {
-    // Compute velocity
-    velocity = this->CalculateVelocity((double*)&data_array[0],
-      data_array.size(), i, timestep);
-
-    // If rocket has started falling, we're done
-    if (velocity < 0)
-      return altitude;
-
-    // Otherwise, extrapolate the next timestep
-    double height = data_array[i - 1];
-    double acceleration = calculate_acceleration(
+  while (velocity > 0) {
+    double accel = calculate_acceleration(
       NULL,
       0,
       acceleration_data.base_mass,
       velocity,
-      height,
-      this->initial_value(),
+      altitude,
+      0,
       acceleration_data.radius,
       acceleration_data.drag_coefficient,
-      0.0);
-    altitude = (2 * height - data_array[i - 2] + acceleration * timestep *
-      timestep);
-    data_array[i] = altitude;
-    data_array.push_back(0);
-    i++;
-  } while (velocity > 0);
+      0
+    );
+    velocity += accel * timestep;
+    altitude += velocity * timestep;
+  }
 
-  return data_array[i - 2];
+  return altitude;
 }
 
 double VerletIntegrator::initial_value() const {

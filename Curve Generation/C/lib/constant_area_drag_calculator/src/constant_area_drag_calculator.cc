@@ -9,11 +9,11 @@ double calculate_drag(
   double drag_coefficient,
   double velocity
 ) {
-  assert(start_height >= 0.0);
+  /*assert(start_height >= 0.0);
   assert(height >= 0.0);
   assert(radius >= 0.0);
   assert(drag_coefficient >= 0.0);
-  assert(velocity >= 0.0);
+  assert(velocity >= 0.0);*/
 
   double density = calculate_density(start_height, height);
   double area = _PI * radius * radius;
