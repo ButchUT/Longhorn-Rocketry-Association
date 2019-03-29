@@ -12,6 +12,9 @@ public:
 
   void initialize();
 
+  /**
+    @brief Get most recent sensor data
+  */
   struct BarometerData read() const;
 
   /**
@@ -28,17 +31,17 @@ public:
   /**
     @brief Attaches a noise source to future pressure readings
   */
-  void setBarometerNoise(NoiseGenerator *gen);
+  void setPressureNoise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to future altimeter readings
   */
-  void setAltimeterNoise(NoiseGenerator *gen);
+  void setAltitudeNoise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to future thermometer readings
   */
-  void setThermometerNoise(NoiseGenerator *gen);
+  void setTemperatureNoise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to all future readings
@@ -48,7 +51,7 @@ public:
 protected:
   float timestep;
   FlightSimulator *flightsim;
-  NoiseGenerator *pressure_noise, *altitude_noise, *temp_noise;
+  NoiseGenerator *pressure_noise, *altitude_noise, *temperature_noise;
 };
 
 #endif

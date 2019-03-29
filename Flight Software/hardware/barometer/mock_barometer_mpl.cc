@@ -11,30 +11,31 @@ void MockBarometerWrapper::setSimulator(FlightSimulator *sim) {
   flightsim = sim;
 }
 
-void MockBarometerWrapper::setBarometerNoise(NoiseGenerator *gen) {
+void MockBarometerWrapper::setPressureNoise(NoiseGenerator *gen) {
   pressure_noise = gen;
 }
 
-void MockBarometerWrapper::setAltimeterNoise(NoiseGenerator *gen) {
+void MockBarometerWrapper::setAltitudeNoise(NoiseGenerator *gen) {
   altitude_noise = gen;
 }
 
-void MockBarometerWrapper::setThermometerNoise(NoiseGenerator *gen) {
-  temp_noise = gen;
+void MockBarometerWrapper::setTemperatureNoise(NoiseGenerator *gen) {
+  temperature_noise = gen;
 }
 
 void MockBarometerWrapper::setNoise(NoiseGenerator *gen) {
-  setBarometerNoise(gen);
-  setAltimeterNoise(gen);
-  setThermometerNoise(gen);
+  setPressureNoise(gen);
+  setAltitudeNoise(gen);
+  setTemperatureNoise(gen);
 }
 
 struct BarometerData MockBarometerWrapper::read() const
 {
   struct BarometerData data;
 
-  // Note: flightsim currently doesn't generate all necessary barometer data
+  data.pressure = flightsim->get_air_pressure();
   data.altitude = flightsim->get_rocket_altitude();
+  // Temperature?
 
   return data;
 }

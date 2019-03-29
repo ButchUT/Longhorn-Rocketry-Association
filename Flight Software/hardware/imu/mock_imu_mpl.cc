@@ -4,13 +4,9 @@
 
 void MockImuWrapper::initialize() {
   flightsim = nullptr;
-  gyro_noise = accel_noise = mag_noise = nullptr;
-}
-
-MockImuWrapper::~MockImuWrapper() {
-  delete gyro_noise;
-  delete accel_noise;
-  delete mag_noise;
+  gyro_noise = std::vector<NoiseGenerator*>(flightsim::AXES_COUNT, nullptr);
+  accel_noise = std::vector<NoiseGenerator*>(flightsim::AXES_COUNT, nullptr);
+  mag_noise = std::vector<NoiseGenerator*>(flightsim::AXES_COUNT, nullptr);
 }
 
 void MockImuWrapper::setTimestep(float t) {
@@ -21,22 +17,37 @@ void MockImuWrapper::setSimulator(FlightSimulator *sim) {
   flightsim = sim;
 }
 
-void MockImuWrapper::setGyroscopeNoise(NoiseGenerator *gen) {
-  gyro_noise = gen;
+void MockImuWrapper::setGyroNoise(NoiseGenerator *gen, int axis) {
+  flightsim::assert_valid_axis(axis);
+  gyro_noise[axis] = gen;
 }
 
-void MockImuWrapper::setAccelerometerNoise(NoiseGenerator *gen) {
-  accel_noise = gen;
+void MockImuWrapper::setGyroNoise(NoiseGenerator *gen) {
+  gyro_noise[0] = gyro_noise[1] = gyro_noise[2] = gen;
 }
 
-void MockImuWrapper::setMagnetometerNoise(NoiseGenerator *gen) {
-  mag_noise = gen;
+void MockImuWrapper::setAccelerationNoise(NoiseGenerator *gen, int axis) {
+  flightsim::assert_valid_axis(axis);
+  accel_noise[axis] = gen;
+}
+
+void MockImuWrapper::setAccelerationNoise(NoiseGenerator *gen) {
+  accel_noise[0] = accel_noise[1] = accel_noise[2] = gen;
+}
+
+void MockImuWrapper::setMagneticNoise(NoiseGenerator *gen, int axis) {
+  flightsim::assert_valid_axis(axis);
+  mag_noise[axis] = gen;
+}
+
+void MockImuWrapper::setMagneticNoise(NoiseGenerator *gen) {
+  mag_noise[0] = mag_noise[1] = mag_noise[2] = gen;
 }
 
 void MockImuWrapper::setNoise(NoiseGenerator *gen) {
-  setGyroscopeNoise(gen);
-  setAccelerometerNoise(gen);
-  setMagnetometerNoise(gen);
+  setGyroNoise(gen);
+  setAccelerationNoise(gen);
+  setMagneticNoise(gen);
 }
 
 struct ImuData MockImuWrapper::read() const {
@@ -50,13 +61,13 @@ struct ImuData MockImuWrapper::read() const {
   }
 
   // Apply noise
-  if (gyro_noise != nullptr)
-    for (int i = 0; i < gyro.size(); i++)
-      gyro[i] += gyro_noise->gen(timestep);
+  for (int i = 0; i < gyro.size(); i++)
+    if (gyro_noise[i] != nullptr)
+      gyro[i] += gyro_noise[i]->gen(timestep);
 
-  if (accel_noise != nullptr)
-    for (int i = 0; i < accel.size(); i++)
-      accel[i] += accel_noise->gen(timestep);
+  for (int i = 0; i < accel.size(); i++)
+    if (accel_noise[i] != nullptr)
+      accel[i] += accel_noise[i]->gen(timestep);
 
   struct ImuData data;
   data.gx = gyro[flightsim::X_AXIS];

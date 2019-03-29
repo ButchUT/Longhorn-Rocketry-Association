@@ -5,15 +5,17 @@
 #include "imu.h"
 #include "noise.h"
 #include <string>
+#include <vector>
 
 class MockImuWrapper : public Imu {
 public:
   MockImuWrapper() {}
 
-  ~MockImuWrapper();
-
   void initialize();
 
+  /**
+    @brief Get the most recent sensor data
+  */
   struct ImuData read() const;
 
   /**
@@ -28,19 +30,35 @@ public:
   void setSimulator(FlightSimulator *sim);
 
   /**
+    @brief Attaches a noise source to gyroscope readings on a particular axis
+  */
+  void setGyroNoise(NoiseGenerator *gen, int axis);
+
+  /**
     @brief Attaches a noise source to future gyroscope readings
   */
-  void setGyroscopeNoise(NoiseGenerator *gen);
+  void setGyroNoise(NoiseGenerator *gen);
+
+  /**
+    @brief Attaches a noise source to accelerometer readings on a particular
+    axis
+  */
+  void setAccelerationNoise(NoiseGenerator *gen, int axis);
 
   /**
     @brief Attaches a noise source to future accelerometer readings
   */
-  void setAccelerometerNoise(NoiseGenerator *gen);
+  void setAccelerationNoise(NoiseGenerator *gen);
+
+  /**
+    @brief Attaches a noise source to magnetometer readings on a particular axis
+  */
+  void setMagneticNoise(NoiseGenerator *gen, int axis);
 
   /**
     @brief Attaches a noise source to future magnetometer readings
   */
-  void setMagnetometerNoise(NoiseGenerator *gen);
+  void setMagneticNoise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to all future readings
@@ -50,7 +68,7 @@ public:
 protected:
   float timestep;
   FlightSimulator *flightsim;
-  NoiseGenerator *gyro_noise, *accel_noise, *mag_noise;
+  std::vector<NoiseGenerator*> gyro_noise, accel_noise, mag_noise;
 };
 
 #endif
