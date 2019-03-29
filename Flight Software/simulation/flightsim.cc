@@ -1,18 +1,26 @@
+#include "acceleration_calculator.h"
 #include <assert.h>
+#include "density_calculator.h"
 #include "flightsim.h"
 #include <math.h>
-#include "acceleration_calculator.h"
 
 #define GRAVITY 9.80665
 
-void FlightSimulator::assert_valid_axis(int axis) {
+void flightsim::assert_valid_axis(int axis) {
   assert(axis == flightsim::X_AXIS || axis == flightsim::Y_AXIS ||
     axis == flightsim::Z_AXIS);
+}
+
+void flightsim::assert_valid_stop_condition(int cond) {
+  assert(cond == flightsim::STOP_CONDITION_APOGEE ||
+    cond == flightsim::STOP_CONDITION_CRASH ||
+    cond == flightsim::STOP_CONDITION_TIME);
 }
 
 FlightSimulator::FlightSimulator(const struct RocketData &rdata) :
   rocket_data(rdata) {
   sim_running = false;
+  stop_condition = flightsim::STOP_CONDITION_APOGEE;
 }
 
 FlightSimulator::~FlightSimulator() {}
@@ -37,7 +45,8 @@ void FlightSimulator::advance(float delta_t) {
     return;
 
   t_c += delta_t;
-  if (sim_running && t_c >= t_f)
+  if (sim_running && stop_condition == flightsim::STOP_CONDITION_TIME &&
+    t_c >= t_f)
     sim_running = false;
 
   // Compute drag force
@@ -57,6 +66,13 @@ void FlightSimulator::advance(float delta_t) {
   );
   rocket_velocity += rocket_acceleration * delta_t;
   rocket_altitude += rocket_velocity * delta_t;
+
+  if (rocket_velocity <= 0 &&
+    stop_condition == flightsim::STOP_CONDITION_APOGEE)
+    sim_running = false;
+  else if (rocket_altitude <= 0 &&
+    stop_condition == flightsim::STOP_CONDITION_CRASH)
+    sim_running = false;
 }
 
 float FlightSimulator::get_time() {
@@ -65,6 +81,18 @@ float FlightSimulator::get_time() {
 
 void FlightSimulator::set_airbrake_extension(float x) {
   airbrake_extension = x;
+}
+
+void FlightSimulator::set_stop_condition(int cond, float t) {
+  flightsim::assert_valid_stop_condition(cond);
+  stop_condition = cond;
+  if (cond == flightsim::STOP_CONDITION_TIME)
+    t_f = t;
+}
+
+float FlightSimulator::get_air_pressure() {
+  return (float)Interp(kPressureTable, kNumPressureTableValues,
+    rocket_altitude);
 }
 
 float FlightSimulator::get_rocket_velocity() {

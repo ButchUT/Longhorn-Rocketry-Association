@@ -66,7 +66,7 @@ void VerletIntegrator::Simulate(double *data_array, std::size_t data_array_size,
   }
 }
 
-double VerletIntegrator::SimulateApogee(double timestep,
+double VerletIntegrator::SimulateApogeeRiemann(double timestep,
   const struct AccelerationCalculationData &acceleration_data) {
 
   double altitude = initial_value();

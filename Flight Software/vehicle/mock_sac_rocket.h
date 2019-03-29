@@ -2,14 +2,14 @@
 #define VEHICLE_MOCK_SAC_ROCKET
 
 #include "abc.h"
+#include "flightcomp.h"
 #include "flightsim.h"
 #include "mock_barometer_mpl.h"
 #include "mock_imu_mpl.h"
-#include "rocket.h"
 #include "telemetry.h"
 #include "verlet_integrator.h"
 
-class MockSacRocket : public Rocket {
+class MockSacRocket : public FlightComputerFrame {
 public:
   MockSacRocket(FlightSimulator *sim, RocketData rdata);
 
@@ -21,9 +21,11 @@ public:
 
   void setTelemetryPipeline(TelemetryPipeline *pipeline);
 
+  void initialize();
+
   void loop();
 
-  bool hit_apogee();
+  void stop();
 
 protected:
   AirbrakeController *abc;
@@ -33,7 +35,6 @@ protected:
   RocketData rocket_data;
   TelemetryPipeline *telemetry;
   float timestep;
-  bool apogee;
 };
 
 #endif

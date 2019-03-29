@@ -106,10 +106,13 @@ public:
    * burning out at around Mach 3, timestep should be 0.01 or smaller for best
    * results.
    *
+   * This method uses a high resolution Riemann sum rather than true Verlet
+   * integration.
+   *
    * @param timestep time resolution
    * @return predicted apogee
    */
-  double SimulateApogee(double timestep, const struct
+  double SimulateApogeeRiemann(double timestep, const struct
     AccelerationCalculationData &acceleration_data);
 
   /**
