@@ -20,33 +20,33 @@ public:
   /**
     @brief Sets the time value used for noise generation
   */
-  void setTimestep(float t);
+  void set_timestep(float t);
 
   /**
     @brief Attaches a flight simulator from which to derive data for readings
     (mandatory)
   */
-  void setSimulator(FlightSimulator *sim);
+  void set_simulator(FlightSimulator *sim);
 
   /**
     @brief Attaches a noise source to future pressure readings
   */
-  void setPressureNoise(NoiseGenerator *gen);
+  void set_pressure_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to future altimeter readings
   */
-  void setAltitudeNoise(NoiseGenerator *gen);
+  void set_altitude_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to future thermometer readings
   */
-  void setTemperatureNoise(NoiseGenerator *gen);
+  void set_temperature_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to all future readings
   */
-  void setNoise(NoiseGenerator *gen);
+  void set_noise(NoiseGenerator *gen);
 
 protected:
   float timestep;

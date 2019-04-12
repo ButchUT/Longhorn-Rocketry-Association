@@ -129,6 +129,6 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
   return brakeExtension;
 }
 
-void AirbrakeController::setTelemetryPipeline(TelemetryPipeline *pipeline) {
+void AirbrakeController::set_telemetry_pipeline(TelemetryPipeline *pipeline) {
   telemetry = pipeline;
 }

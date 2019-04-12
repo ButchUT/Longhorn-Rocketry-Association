@@ -21,49 +21,49 @@ public:
   /**
     @brief Sets the time value used for noise generation
   */
-  void setTimestep(float t);
+  void set_timestep(float t);
 
   /**
     @brief Attaches a flight simulator from which to derive kinematical data
     for readings (mandatory)
   */
-  void setSimulator(FlightSimulator *sim);
+  void set_simulator(FlightSimulator *sim);
 
   /**
     @brief Attaches a noise source to gyroscope readings on a particular axis
   */
-  void setGyroNoise(NoiseGenerator *gen, int axis);
+  void set_gyro_noise(NoiseGenerator *gen, int axis);
 
   /**
     @brief Attaches a noise source to future gyroscope readings
   */
-  void setGyroNoise(NoiseGenerator *gen);
+  void set_gyro_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to accelerometer readings on a particular
     axis
   */
-  void setAccelerationNoise(NoiseGenerator *gen, int axis);
+  void set_acceleration_noise(NoiseGenerator *gen, int axis);
 
   /**
     @brief Attaches a noise source to future accelerometer readings
   */
-  void setAccelerationNoise(NoiseGenerator *gen);
+  void set_acceleration_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to magnetometer readings on a particular axis
   */
-  void setMagneticNoise(NoiseGenerator *gen, int axis);
+  void set_magnetic_noise(NoiseGenerator *gen, int axis);
 
   /**
     @brief Attaches a noise source to future magnetometer readings
   */
-  void setMagneticNoise(NoiseGenerator *gen);
+  void set_magnetic_noise(NoiseGenerator *gen);
 
   /**
     @brief Attaches a noise source to all future readings
   */
-  void setNoise(NoiseGenerator *gen);
+  void set_noise(NoiseGenerator *gen);
 
 protected:
   float timestep;

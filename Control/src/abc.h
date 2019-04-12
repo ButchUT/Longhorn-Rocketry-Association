@@ -96,7 +96,7 @@ public:
 
     @param stream target stream
   */
-  void setTelemetryPipeline(TelemetryPipeline *pipeline);
+  void set_telemetry_pipeline(TelemetryPipeline *pipeline);
 };
 
 #endif

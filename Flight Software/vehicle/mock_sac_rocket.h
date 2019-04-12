@@ -7,6 +7,7 @@
 #include "mock_barometer_mpl.h"
 #include "mock_imu_mpl.h"
 #include "telemetry.h"
+#include <vector>
 #include "verlet_integrator.h"
 
 class MockSacRocket : public FlightComputerFrame {
@@ -15,11 +16,11 @@ public:
 
   ~MockSacRocket();
 
-  void setTimestep(float t);
+  void set_timestep(float t);
 
-  void setSimulator(FlightSimulator *sim);
+  void set_simulator(FlightSimulator *sim);
 
-  void setTelemetryPipeline(TelemetryPipeline *pipeline);
+  void set_telemetry_pipeline(TelemetryPipeline *pipeline);
 
   void initialize();
 
@@ -34,7 +35,7 @@ protected:
   MockImuWrapper *imu;
   RocketData rocket_data;
   TelemetryPipeline *telemetry;
-  float timestep;
+  float timestep, altitude_last, timestep_last;
 };
 
 #endif

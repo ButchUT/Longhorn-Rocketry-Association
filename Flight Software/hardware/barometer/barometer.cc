@@ -5,7 +5,7 @@ Barometer::~Barometer() {}
 
 void Barometer::initialize() {}
 
-std::string Barometer::getLoggingData() const {
+std::string Barometer::get_logging_data() const {
   struct BarometerData data = this->read();
   std::stringstream output;
 

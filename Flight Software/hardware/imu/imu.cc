@@ -5,7 +5,7 @@ Imu::~Imu() {}
 
 void Imu::initialize() {}
 
-std::string Imu::getLoggingData() const {
+std::string Imu::get_logging_data() const {
   struct ImuData data = this->read();
   std::stringstream ostream;
 

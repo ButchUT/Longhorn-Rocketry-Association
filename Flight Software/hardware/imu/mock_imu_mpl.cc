@@ -9,45 +9,45 @@ void MockImuWrapper::initialize() {
   mag_noise = std::vector<NoiseGenerator*>(flightsim::AXES_COUNT, nullptr);
 }
 
-void MockImuWrapper::setTimestep(float t) {
+void MockImuWrapper::set_timestep(float t) {
   timestep = t;
 }
 
-void MockImuWrapper::setSimulator(FlightSimulator *sim) {
+void MockImuWrapper::set_simulator(FlightSimulator *sim) {
   flightsim = sim;
 }
 
-void MockImuWrapper::setGyroNoise(NoiseGenerator *gen, int axis) {
+void MockImuWrapper::set_gyro_noise(NoiseGenerator *gen, int axis) {
   flightsim::assert_valid_axis(axis);
   gyro_noise[axis] = gen;
 }
 
-void MockImuWrapper::setGyroNoise(NoiseGenerator *gen) {
+void MockImuWrapper::set_gyro_noise(NoiseGenerator *gen) {
   gyro_noise[0] = gyro_noise[1] = gyro_noise[2] = gen;
 }
 
-void MockImuWrapper::setAccelerationNoise(NoiseGenerator *gen, int axis) {
+void MockImuWrapper::set_acceleration_noise(NoiseGenerator *gen, int axis) {
   flightsim::assert_valid_axis(axis);
   accel_noise[axis] = gen;
 }
 
-void MockImuWrapper::setAccelerationNoise(NoiseGenerator *gen) {
+void MockImuWrapper::set_acceleration_noise(NoiseGenerator *gen) {
   accel_noise[0] = accel_noise[1] = accel_noise[2] = gen;
 }
 
-void MockImuWrapper::setMagneticNoise(NoiseGenerator *gen, int axis) {
+void MockImuWrapper::set_magnetic_noise(NoiseGenerator *gen, int axis) {
   flightsim::assert_valid_axis(axis);
   mag_noise[axis] = gen;
 }
 
-void MockImuWrapper::setMagneticNoise(NoiseGenerator *gen) {
+void MockImuWrapper::set_magnetic_noise(NoiseGenerator *gen) {
   mag_noise[0] = mag_noise[1] = mag_noise[2] = gen;
 }
 
-void MockImuWrapper::setNoise(NoiseGenerator *gen) {
-  setGyroNoise(gen);
-  setAccelerationNoise(gen);
-  setMagneticNoise(gen);
+void MockImuWrapper::set_noise(NoiseGenerator *gen) {
+  set_gyro_noise(gen);
+  set_acceleration_noise(gen);
+  set_magnetic_noise(gen);
 }
 
 struct ImuData MockImuWrapper::read() const {

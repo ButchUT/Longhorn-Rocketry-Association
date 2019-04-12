@@ -35,7 +35,7 @@ public:
   /**
     @brief Get telemetry about status
   */
-  virtual std::string getLoggingData() const;
+  virtual std::string get_logging_data() const;
 };
 
 #endif

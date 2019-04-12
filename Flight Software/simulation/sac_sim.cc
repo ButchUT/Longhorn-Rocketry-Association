@@ -1,9 +1,16 @@
+#include <chrono>
 #include "flightsim.h"
 #include <fstream>
 #include <iostream>
 #include "mock_sac_rocket.h"
 #include <string>
 #include "telemetry.h"
+
+double time() {
+    chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
+      chrono::system_clock::now().time_since_epoch());
+    return ms.count() / 1000.0;
+}
 
 int main() {
   // Configure rocket
@@ -31,22 +38,31 @@ int main() {
   telemetry.open_pipe("aconv", "dat/aconv.dat");
 
   rocket.initialize();
-  rocket.setTelemetryPipeline(&telemetry);
-  rocket.setSimulator(&flightsim);
+  rocket.set_telemetry_pipeline(&telemetry);
+  rocket.set_simulator(&flightsim);
 
   flightsim.set_stop_condition(flightsim::STOP_CONDITION_APOGEE);
   flightsim.begin(0);
 
+  double control_time_total = 0;
+  int iterations = 0;
+
   // Go time
   while (flightsim.is_running()) {
     flightsim.advance(0.1);
-    rocket.setTimestep(flightsim.get_time());
+    rocket.set_timestep(flightsim.get_time());
+    double control_time_start = time();
     rocket.loop();
+    control_time_total += time() - control_time_start;
+    iterations++;
   }
 
   rocket.stop();
 
-  std::cout << "Rocket hit " << flightsim.get_rocket_altitude() << std::endl;
+  std::cout << "FLIGHT SUMMARY" << std::endl << "--------------" << std::endl <<
+    "Duration: " << flightsim.get_time() << std::endl <<
+    "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
+    "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
 
   telemetry.close();
 }

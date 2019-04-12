@@ -3,30 +3,30 @@
 
 void MockBarometerWrapper::initialize() {}
 
-void MockBarometerWrapper::setTimestep(float t) {
+void MockBarometerWrapper::set_timestep(float t) {
   timestep = t;
 }
 
-void MockBarometerWrapper::setSimulator(FlightSimulator *sim) {
+void MockBarometerWrapper::set_simulator(FlightSimulator *sim) {
   flightsim = sim;
 }
 
-void MockBarometerWrapper::setPressureNoise(NoiseGenerator *gen) {
+void MockBarometerWrapper::set_pressure_noise(NoiseGenerator *gen) {
   pressure_noise = gen;
 }
 
-void MockBarometerWrapper::setAltitudeNoise(NoiseGenerator *gen) {
+void MockBarometerWrapper::set_altitude_noise(NoiseGenerator *gen) {
   altitude_noise = gen;
 }
 
-void MockBarometerWrapper::setTemperatureNoise(NoiseGenerator *gen) {
+void MockBarometerWrapper::set_temperature_noise(NoiseGenerator *gen) {
   temperature_noise = gen;
 }
 
-void MockBarometerWrapper::setNoise(NoiseGenerator *gen) {
-  setPressureNoise(gen);
-  setAltitudeNoise(gen);
-  setTemperatureNoise(gen);
+void MockBarometerWrapper::set_noise(NoiseGenerator *gen) {
+  set_pressure_noise(gen);
+  set_altitude_noise(gen);
+  set_temperature_noise(gen);
 }
 
 struct BarometerData MockBarometerWrapper::read() const
