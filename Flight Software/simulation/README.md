@@ -30,3 +30,13 @@ The script can also overlay multiple datasets onto the same graph:
 ```
 python3 vis.py lowbound.dat highbound.dat
 ```
+
+## Todo
+
+* [ ] Altimeter acts to correct acceleration data
+* [ ] Atmospheric pressure tables for different climates
+* [ ] Barometer readings are corrected using the aforementioned tables
+* [ ] Factor in temperature readings in some useful way
+* [ ] Stroke length calculator (relate servo angle to airbrake extension percentage)
+* [ ] Realtime simulation with GUI and telemetry graphs, ability to stop/start/increment clock
+* [ ] All-in-one-place configuration (rocket, airbrake, atmosphere, etc.)
