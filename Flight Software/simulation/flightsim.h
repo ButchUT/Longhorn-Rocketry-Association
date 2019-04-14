@@ -45,6 +45,8 @@ protected:
   bool sim_running;
   int stop_condition;
 
+  NoiseGenerator *gen;
+
 public:
   /**
     Configure simulation.

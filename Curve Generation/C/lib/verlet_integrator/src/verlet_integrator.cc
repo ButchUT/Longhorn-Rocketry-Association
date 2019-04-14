@@ -92,9 +92,9 @@ double VerletIntegrator::SimulateApogeeVerlet(double timestep, const struct
       acceleration_data.drag_coefficient,
       0
     );
-    double altitude = 2 * altitude - data[i - 2] +
+    double altitude_new = 2 * altitude - data[i - 2] +
       acceleration * timestep * timestep;
-    data.push_back(altitude);
+    data.push_back(altitude_new);
     i++;
   }
 

@@ -5,6 +5,7 @@
 #include "mock_sac_rocket.h"
 #include <string>
 #include "telemetry.h"
+#include "verlet_integrator.h"
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
@@ -12,16 +13,36 @@ double time() {
     return ms.count() / 1000.0;
 }
 
+void verlet_test() {
+  struct InitializationData vinit;
+  vinit.initial_value = 0;
+  vinit.start_time = 0;
+  vinit.initial_velocity = 200;
+  VerletIntegrator vint = VerletIntegrator(vinit);
+
+  struct AccelerationCalculationData vacc;
+  vacc.drag_coefficient = 0.1;
+  vacc.radius = 0.1;
+  vacc.base_mass = 45;
+
+  double alt1 = vint.SimulateApogeeEuler(0.01, vacc);
+  double alt2 = vint.SimulateApogeeVerlet(0.01, vacc);
+
+  std::cout << alt1 << std::endl << alt2 << std::endl;
+}
+
 int main() {
+  // verlet_test();
+
   // Configure rocket
   struct RocketData rdata;
   rdata.initial_altitude = 0;
-  rdata.drag_coeff = 0.01;
+  rdata.drag_coeff = 0.1;
   rdata.radius = 0.1;
-  rdata.airbrake_area = 0.05;
-  rdata.burnout_mass = 15;
-  rdata.burnout_velocity = 343;
-  rdata.burnout_altitude = 200;
+  rdata.airbrake_area = 0.5;
+  rdata.burnout_mass = 45;
+  rdata.burnout_velocity = 1125.33 * 0.86;
+  rdata.burnout_altitude = 1500;
 
   // Configuration
   TelemetryPipeline telemetry = TelemetryPipeline();
@@ -60,7 +81,7 @@ int main() {
   rocket.stop();
 
   std::cout << "FLIGHT SUMMARY" << std::endl << "--------------" << std::endl <<
-    "Duration: " << flightsim.get_time() << std::endl <<
+    "Duration of ascent: " << flightsim.get_time() << std::endl <<
     "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
     "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
 

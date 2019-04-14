@@ -21,6 +21,7 @@ FlightSimulator::FlightSimulator(const struct RocketData &rdata) :
   rocket_data(rdata) {
   sim_running = false;
   stop_condition = flightsim::STOP_CONDITION_APOGEE;
+  gen = new UniformNoiseGenerator(-3, 3);
 }
 
 FlightSimulator::~FlightSimulator() {}
@@ -63,7 +64,7 @@ void FlightSimulator::advance(float delta_t) {
     r,
     rocket_data.drag_coeff,
     0
-  );
+  ) + gen->gen(t_c);
   rocket_velocity += rocket_acceleration * delta_t;
   rocket_altitude += rocket_velocity * delta_t;
 

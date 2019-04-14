@@ -34,14 +34,14 @@ void MockSacRocket::initialize() {
   barometer = new MockBarometerWrapper();
   barometer->initialize();
   barometer->set_simulator(flightsim);
-  UniformNoiseGenerator *barometer_noise = new UniformNoiseGenerator(-10, 10);
-  barometer->set_altitude_noise(barometer_noise);
+  // UniformNoiseGenerator *barometer_noise = new UniformNoiseGenerator(-10, 10);
+  // barometer->set_altitude_noise(barometer_noise);
 
   // Initialize IMU
   imu = new MockImuWrapper();
   imu->initialize();
   imu->set_simulator(flightsim);
-  UniformNoiseGenerator *imu_noise = new UniformNoiseGenerator(-5, 5);
+  UniformNoiseGenerator *imu_noise = new UniformNoiseGenerator(-10, 10);
   imu->set_acceleration_noise(imu_noise);
 
   // Build airbrake controller
@@ -85,11 +85,11 @@ void MockSacRocket::loop() {
     float r_big = sqrt(rocket_data.radius * rocket_data.radius +
       rocket_data.airbrake_area / M_PI);
     acalc_data.radius = r_big;
-    float alt_min = (float)vint.SimulateApogeeRiemann(0.01, acalc_data);
+    float alt_min = (float)vint.SimulateApogeeEuler(0.01, acalc_data);
 
     // Integrate upper altitude curve
     acalc_data.radius = rocket_data.radius;
-    float alt_max = (float)vint.SimulateApogeeRiemann(0.01, acalc_data);
+    float alt_max = (float)vint.SimulateApogeeEuler(0.01, acalc_data);
 
     // Update airbrake
     float extension = abc->update(timestep, velocity, alt_min, alt_max);

@@ -10,54 +10,73 @@
 
 using namespace std;
 
-/**
-  Clamps a float between some bounds.
+namespace abc {
+  /**
+    All-in-one-place configuration for an AirbrakeController.
+  */
+  struct AirbrakeControllerConfiguration {
+    float target_altitude;
+    float min_velocity, max_velocity;
+    float min_brake_step, max_brake_step;
+    float brake_step_profile_exp;
+    int bounds_history_size;
+    bool enforce_bounds_history_size, use_polyreg;
+  };
 
-  @param f value to constrain
-  @param lower lower bound
-  @param upper upper bound
-*/
-float fconstrain(float f, float lower, float upper);
+  /**
+    Clamps a float between some bounds.
 
-/**
-  Computes where two parabolas intersect.
+    @param f value to constrain
+    @param lower lower bound
+    @param upper upper bound
+  */
+  float fconstrain(float f, float lower, float upper);
 
-  @param p1 <c, b, a> coefficients of parabola 1
-  @param p2 <c, b, a> coefficients of parabola 2
-  @return largest solution or NIL if parabolas do not intersect
-*/
-pair<float, float> pbintersect(vector<float> &p1, vector<float> &p2);
+  /**
+    Computes where two parabolas intersect.
+
+    @param p1 <c, b, a> coefficients of parabola 1
+    @param p2 <c, b, a> coefficients of parabola 2
+    @return largest solution or NIL if parabolas do not intersect
+  */
+  pair<float, float> pb_intersect(vector<float> &p1, vector<float> &p2);
+
+  /**
+    A subjective method of determining if a predicted bound convergence time
+    is realistic.
+
+    @param t_conv predicted time of bound convergence
+    @param t_now current time
+    @return if t_conv is realistic
+  */
+  bool t_conv_is_realistic(float t_conv, float t_now);
+}
 
 class AirbrakeController {
 private:
-  const float ALTITUDE_TARGET;
-  const size_t BOUNDS_HISTORY_SIZE;
-  const int POLYNOMIAL_ORDER = 2;
+  const int POLYNOMIAL_ORDER = 2; // Polynomial degree used in regression
+  const float BRAKE_LOWER_BOUND = 0.0; // Brakes fully retracted
+  const float BRAKE_UPPER_BOUND = 1.0; // Brakes fully extended
+  const struct abc::AirbrakeControllerConfiguration CONFIG;
 
-  float timeLast;
-  float altMinVelocity, altMaxVelocity;
-  float brakeExtension;
+  float time_last;
+  float alt_min_velocity, alt_max_velocity;
+  float brake_extension;
   int iterations;
-  vector<float> historyTimestamps,altMinHistory, altMaxHistory, aminCoeffs,
-    amaxCoeffs;
+  vector<float> history_timestamps, alt_min_history, alt_max_history,
+    amin_coeffs, amax_coeffs;
 
-  BrakeProfile *brakeProfile;
-  PolynomialRegression polyreg;
+  BrakeProfile *brake_profile;
+  PolynomialRegression regressor;
   TelemetryPipeline *telemetry;
 
 public:
-  const float BRAKE_LOWER_BOUND = 0.0; // Brakes fully retracted
-  const float BRAKE_UPPER_BOUND = 1.0; // Brakes fully extended
-
   /**
     Creates a new controller with no history.
 
-    @param alitudeTarget target apogee
-    @param brakeProfile profile for computing brake step size
-    @param boundsHistorySize maximum size of bounds history arrays
+    @param config controller configuration
   */
-  AirbrakeController(float altitudeTarget, BrakeProfile *brakeProfile,
-    size_t boundsHistorySize);
+  AirbrakeController(const abc::AirbrakeControllerConfiguration &config);
 
   ~AirbrakeController();
 
@@ -84,11 +103,11 @@ public:
 
     @param t system time
     @param v rocket velocity
-    @param altMin minimum altitude (in the event of full brake)
-    @param altMin maximum altitude (no brake)
+    @param alt_min minimum altitude (in the event of full brake)
+    @param alt_max maximum altitude (no brake)
     @return new airbrake position on [BRAKE_LOWER_BOUND, BRAKE_UPPER_BOUND]
   */
-  float update(float t, float v, float altMin, float altMax);
+  float update(float t, float v, float alt_min, float alt_max);
 
   /**
     Sets the stream that update telemetry will be printed to. If stream is

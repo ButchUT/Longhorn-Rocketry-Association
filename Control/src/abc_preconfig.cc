@@ -2,18 +2,18 @@
 #include "abc_profiling.h"
 
 AirbrakeController* make_2019_sac_abc() {
-  const float TARGET_ALTITUDE = 5600;
-  const float MIN_VELOCITY = 150;
-  const float MAX_VELOCITY = 343 * 1;
-  const float MIN_BRAKE_STEP = 0.075;
-  const float MAX_BRAKE_STEP = 0.1;
-  const float EXP = -1;
-  const size_t BOUNDS_HISTORY_SIZE = 500;
+  struct abc::AirbrakeControllerConfiguration config;
+  config.target_altitude = 15000;
+  config.min_velocity = 400;
+  config.max_velocity = 1125.33 * 0.86;
+  config.min_brake_step = 0.075;
+  config.max_brake_step = 0.1;
+  config.brake_step_profile_exp = -1;
+  config.bounds_history_size = 50;
+  config.enforce_bounds_history_size = false;
+  config.use_polyreg = true;
 
-  BinomialBrakeProfile *profile = new BinomialBrakeProfile(MIN_BRAKE_STEP,
-    MAX_BRAKE_STEP, MIN_VELOCITY, MAX_VELOCITY, EXP);
-  AirbrakeController *abc = new AirbrakeController(TARGET_ALTITUDE, profile,
-    BOUNDS_HISTORY_SIZE);
+  AirbrakeController *abc = new AirbrakeController(config);
 
   return abc;
 }
