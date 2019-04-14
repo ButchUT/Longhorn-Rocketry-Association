@@ -11,6 +11,7 @@
 #include <cassert>   // assert
 #include <cstddef>   // std::size_t
 #include <vector>
+#include <iostream>
 
 #include "acceleration_calculator.h"
 
@@ -26,8 +27,8 @@ double VerletIntegrator::CalculateVelocity(double *data_array,
                                            size_t data_array_size,
                                            unsigned int index,
                                            double timestep) {
-  if (index >= data_array_size)
-    throw -1;
+  if (index > data_array_size)
+    throw "index must be <= data_array_size";
 
   unsigned int num_samples = std::min(VerletIntegrator::kPastNumSteps, index - 1);
   double sum = 0.0;
@@ -35,7 +36,7 @@ double VerletIntegrator::CalculateVelocity(double *data_array,
     sum += (data_array[index - 1 - i] - data_array[index - 2 - i]);
   }
 
-  return sum / timestep * num_samples;
+  return sum / (timestep * num_samples);
 }
 
 void VerletIntegrator::Simulate(double *data_array, std::size_t data_array_size,
@@ -66,7 +67,41 @@ void VerletIntegrator::Simulate(double *data_array, std::size_t data_array_size,
   }
 }
 
-double VerletIntegrator::SimulateApogeeRiemann(double timestep,
+double VerletIntegrator::SimulateApogeeVerlet(double timestep, const struct
+  AccelerationCalculationData &acceleration_data) {
+
+  std::vector<double> data;
+  data.push_back(initial_value());
+  data.push_back(data[0] + initial_velocity() * timestep);
+
+  int i = 2;
+  double velocity = initial_velocity();
+  double altitude = initial_value();
+
+  while (velocity > 0) {
+    velocity = CalculateVelocity((double*)(&data[0]), data.size(), i, timestep);
+    altitude = data[i - 1];
+    double acceleration = calculate_acceleration(
+      NULL,
+      0,
+      acceleration_data.base_mass,
+      velocity,
+      altitude,
+      initial_value(),
+      acceleration_data.radius,
+      acceleration_data.drag_coefficient,
+      0
+    );
+    double altitude = 2 * altitude - data[i - 2] +
+      acceleration * timestep * timestep;
+    data.push_back(altitude);
+    i++;
+  }
+
+  return altitude;
+}
+
+double VerletIntegrator::SimulateApogeeEuler(double timestep,
   const struct AccelerationCalculationData &acceleration_data) {
 
   double altitude = initial_value();

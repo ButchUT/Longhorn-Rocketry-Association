@@ -101,6 +101,9 @@ public:
                 double timestep,
                 const struct AccelerationCalculationData &acceleration_data);
 
+  double SimulateApogeeVerlet(double timestep, const struct
+    AccelerationCalculationData &acceleration_data);
+
   /**
    * Generates a curve until negative velocity is encountered. For rockets
    * burning out at around Mach 3, timestep should be 0.01 or smaller for best
@@ -112,7 +115,7 @@ public:
    * @param timestep time resolution
    * @return predicted apogee
    */
-  double SimulateApogeeRiemann(double timestep, const struct
+  double SimulateApogeeEuler(double timestep, const struct
     AccelerationCalculationData &acceleration_data);
 
   /**
