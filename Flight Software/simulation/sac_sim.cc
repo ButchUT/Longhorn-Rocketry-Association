@@ -1,16 +1,39 @@
+#include "abc_preconfig.h"
 #include <chrono>
-#include "flightsim.h"
+#include "flight_sim.h"
 #include <fstream>
 #include <iostream>
 #include "mock_sac_rocket.h"
+#include "regression.h"
 #include <string>
 #include "telemetry.h"
+#include <vector>
 #include "verlet_integrator.h"
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
       chrono::system_clock::now().time_since_epoch());
     return ms.count() / 1000.0;
+}
+
+void expreg_test() {
+  std::vector<float> x, y;
+  std::vector<float> coeffs(2);
+
+  x.push_back(0);
+  x.push_back(1);
+  x.push_back(2);
+  x.push_back(3);
+
+  y.push_back(100);
+  y.push_back(75);
+  y.push_back(68);
+  y.push_back(63);
+
+  ExponentialRegressor reg(3);
+  reg.fit(x, y, coeffs);
+
+  std::cout << coeffs[0] << " " << coeffs[1] << std::endl;
 }
 
 void verlet_test() {
@@ -32,9 +55,9 @@ void verlet_test() {
 }
 
 int main() {
-  // verlet_test();
+  expreg_test();
 
-  // Configure rocket
+  /*// Configure rocket
   struct RocketData rdata;
   rdata.initial_altitude = 0;
   rdata.drag_coeff = 0.1;
@@ -47,7 +70,7 @@ int main() {
   // Configuration
   TelemetryPipeline telemetry = TelemetryPipeline();
   FlightSimulator flightsim = FlightSimulator(rdata);
-  MockSacRocket rocket = MockSacRocket(&flightsim, rdata);
+  MockSacRocket rocket = MockSacRocket(&flightsim, rdata, make_2019_sac_abc());
 
   telemetry.open_pipe("time", "dat/time.dat");
   telemetry.open_pipe("brake", "dat/brake.dat");
@@ -85,5 +108,5 @@ int main() {
     "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
     "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
 
-  telemetry.close();
+  telemetry.close();*/
 }
