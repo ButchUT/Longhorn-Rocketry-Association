@@ -32,9 +32,7 @@ bool abc::t_conv_is_realistic(float t_conv, float t_now) {
 
 AirbrakeController::AirbrakeController(
   const abc::AirbrakeControllerConfiguration &config) :
-  CONFIG(config),
-  regressor(PolynomialRegression(config.bounds_history_size,
-    POLYNOMIAL_ORDER)) {
+  CONFIG(config) {
 
   time_last = alt_min_velocity = alt_max_velocity = NIL;
   brake_extension = 0.0;
@@ -42,8 +40,6 @@ AirbrakeController::AirbrakeController(
   history_timestamps = vector<float>();
   alt_min_history = vector<float>();
   alt_max_history = vector<float>();
-  amin_coeffs = vector<float>(POLYNOMIAL_ORDER + 1);
-  amax_coeffs = vector<float>(POLYNOMIAL_ORDER + 1);
   this->brake_profile = new BinomialBrakeProfile(
     CONFIG.min_brake_step,
     CONFIG.max_brake_step,
@@ -52,10 +48,24 @@ AirbrakeController::AirbrakeController(
     CONFIG.brake_step_profile_exp
   );
   telemetry = nullptr;
+
+  int coeff_count = 0;
+  if (CONFIG.regression_id == abc::REG_QUAD) {
+    regressor = new PolynomialRegressor(CONFIG.bounds_history_size, 2);
+    coeff_count = 3;
+  } else if (CONFIG.regression_id == abc::REG_EXP) {
+    regressor = new ExponentialRegressor(CONFIG.bounds_history_size);
+    coeff_count = 2;
+  }
+
+  amin_coeffs = vector<float>(coeff_count);
+  amax_coeffs = vector<float>(coeff_count);
 }
 
 AirbrakeController::~AirbrakeController() {
   delete brake_profile;
+  if (CONFIG.regression_id != abc::REG_NONE)
+    delete regressor;
 }
 
 float AirbrakeController::get_brake_extension() {
@@ -107,12 +117,12 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
     // If a valid convergence time was calculated at some point and the history
     // size is satisfactory, polynomial regression will give a second opinion
     // on convergence time
-    if (CONFIG.use_polyreg && time_of_convergence != NIL &&
+    if (CONFIG.regression_id != abc::REG_NONE && time_of_convergence != NIL &&
       iterations >= CONFIG.bounds_history_size) {
 
       // Fit parabolas to each bound history and find their intersections
-      regressor.polyreg(history_timestamps, alt_min_history, amin_coeffs);
-      regressor.polyreg(history_timestamps, alt_max_history, amax_coeffs);
+      regressor->fit(history_timestamps, alt_min_history, amin_coeffs);
+      regressor->fit(history_timestamps, alt_max_history, amax_coeffs);
       pair<float, float> sols = abc::pb_intersect(amin_coeffs, amax_coeffs);
 
       // Proposed solution is whichever polyreg zero was closest to the linear
@@ -123,7 +133,6 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
 
       // If the time predicted with regression is realistic, use it
       if (abc::t_conv_is_realistic(sol, t)) {
-        float old_alt = convergence_altitude;
         time_of_convergence = sol;
         float t1 = time_of_convergence, t2 = t1 * t1;
         convergence_altitude = amin_coeffs[2] * t2 + amin_coeffs[1] * t1 +

@@ -2,7 +2,7 @@
 #define CONTROL_ABC_H
 
 #include <fstream>
-#include "polyreg.h"
+#include "regression.h"
 #include "abc_profiling.h"
 #include <string>
 #include "telemetry.h"
@@ -11,6 +11,10 @@
 using namespace std;
 
 namespace abc {
+  const int REG_NONE = 0;
+  const int REG_QUAD = 1;
+  const int REG_EXP = 3;
+
   /**
     All-in-one-place configuration for an AirbrakeController.
   */
@@ -19,8 +23,8 @@ namespace abc {
     float min_velocity, max_velocity;
     float min_brake_step, max_brake_step;
     float brake_step_profile_exp;
-    int bounds_history_size;
-    bool enforce_bounds_history_size, use_polyreg;
+    int bounds_history_size, regression_id;
+    bool enforce_bounds_history_size;
   };
 
   /**
@@ -54,7 +58,6 @@ namespace abc {
 
 class AirbrakeController {
 private:
-  const int POLYNOMIAL_ORDER = 2; // Polynomial degree used in regression
   const float BRAKE_LOWER_BOUND = 0.0; // Brakes fully retracted
   const float BRAKE_UPPER_BOUND = 1.0; // Brakes fully extended
   const struct abc::AirbrakeControllerConfiguration CONFIG;
@@ -67,7 +70,7 @@ private:
     amin_coeffs, amax_coeffs;
 
   BrakeProfile *brake_profile;
-  PolynomialRegression regressor;
+  Regressor *regressor;
   TelemetryPipeline *telemetry;
 
 public:
@@ -96,6 +99,9 @@ public:
       - Maintain a history of the last N min and max altitudes
       - Fit quadratic functions to each history
       - Find the intersection of those functions to predict bound convergence
+      - If the point of intersection is nonexistent or nonsensical, a simple
+        slope approximation of each bound's velocity is used to compute
+        convergence
       - Step the brakes in the direction that will bring the convergence
         point closer to the target altitude
       - Step magnitude is found by plugging rocket velocity into the

@@ -1,26 +1,24 @@
-/**
-  A version of Chris Engelsma's polynomial regression implementation with
-  miscellaneous optimizations made.
-  https://gist.github.com/chrisengelsma/108f7ab0a746323beaaf7d6634cf4add
-*/
-#include <math.h>
-#include "polyreg.h"
+#include "regression.h"
 
-PolynomialRegression::PolynomialRegression(size_t pointCount, int order) {
+PolynomialRegressor::PolynomialRegressor(size_t pointCount, int order) {
   n = order;
   np1 = n + 1;
   np2 = n + 2;
   tnp1 = 2 * n + 1;
 
-  X = vector<float>(tnp1);
-  Y = vector<float>(np1);
-  a = vector<float>(np1);
-  B = vector<vector<float>>(np1, vector<float>(np2, 0));
+  X = std::vector<float>(tnp1);
+  Y = std::vector<float>(np1);
+  a = std::vector<float>(np1);
+  B = std::vector<std::vector<float>>(np1, std::vector<float>(np2, 0));
 }
 
-void PolynomialRegression::polyreg(const vector<float> &x,
-  const vector<float> &y, vector<float> &coeffs) {
-
+/**
+  A version of Chris Engelsma's polynomial regression implementation with
+  miscellaneous optimizations made.
+  https://gist.github.com/chrisengelsma/108f7ab0a746323beaaf7d6634cf4add
+*/
+void PolynomialRegressor::fit(const std::vector<float> &x,
+  const std::vector<float> &y, std::vector<float> &coeffs) {
   size_t N = x.size();
 
   // X = vector that stores values of sigma(xi^2n)
@@ -81,4 +79,37 @@ void PolynomialRegression::polyreg(const vector<float> &x,
   coeffs.resize(a.size());
   for (size_t i = 0; i < a.size(); i++)
     coeffs[i] = a[i];
+}
+
+ExponentialRegressor::ExponentialRegressor(size_t point_count) {
+  lny = new float[point_count];
+}
+
+ExponentialRegressor::~ExponentialRegressor() {
+  delete lny;
+}
+
+void ExponentialRegressor::fit(const std::vector<float> &x,
+  const std::vector<float> &y, std::vector<float> &coeffs) {
+
+  size_t N = x.size();
+
+  // Calculate values of ln(y_i)
+  for (int i = 0; i < N; i++)
+    lny[i] = log(y[i]);
+
+  float x_sum = 0, x2_sum = 0, y_sum = 0, xy_sum = 0;
+  for (int i = 0; i < N; i++) {
+    x_sum += x[i];
+    x2_sum += x[i] * x[i];
+    y_sum += lny[i];
+    xy_sum += x[i] * lny[i];
+  }
+
+  float a = (N * xy_sum - x_sum * y_sum) / (N * x2_sum - x_sum * x_sum);
+  float b = (x2_sum * y_sum - x_sum * xy_sum) / (x2_sum * N - x_sum * x_sum);
+  float c = pow(E, b);
+
+  coeffs[0] = a;
+  coeffs[1] = c;
 }

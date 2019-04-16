@@ -11,7 +11,7 @@ AirbrakeController* make_2019_sac_abc() {
   config.brake_step_profile_exp = -1;
   config.bounds_history_size = 50;
   config.enforce_bounds_history_size = false;
-  config.use_polyreg = true;
+  config.regression_id = 1;
 
   AirbrakeController *abc = new AirbrakeController(config);
 
