@@ -14,7 +14,7 @@ A fully-configured simulator for the SAC rocket can be found in `sac_sim.cc`. To
 
 For tweaking the simulation environment, there are three main files to modify:
 * `Control/src/abc_preconfig.cc` - A method `make_2019_sac_abc` builds the rocket's airbrake controller. This decides the target apogee and brake step size, among other things
-* `mock_sac_rocket.cc` - The `MockSacRocket` class holds the actual control code that interprets sensor data and moves the airbrakes. Mock sensors and simulation noise should be configured in the constructor of this class
+* `mock_sac_rocket.cc` - The `MockSacRocket` class holds the actual control code that interprets sensor data and moves the airbrakes. Mock sensors and simulation noise should be configured in the `initialize` method of this class
 * `sac_sim.cc` - Combines simulation and rocket updates into a common loop. Rocket properties like drag coefficient and burnout velocity are also configured here
 
 ## Data Visualization
@@ -31,12 +31,15 @@ The script can also overlay multiple datasets onto the same graph:
 python3 vis.py lowbound.dat highbound.dat
 ```
 
-## Todo
+## Todo for Simulator Functionality
+
+* [ ] `big_tester.cc` walks across individual `AirbrakeControllerConfiguration` parameters like step size, oscillation thresholds, etc.
+* [ ] Atmospheric pressure tables for different climates
+* [ ] Realtime simulation with GUI and telemetry graphs, ability to stop/start/increment clock
+
+## Todo for Topmost Control Algorithm
 
 * [ ] Altimeter acts to correct acceleration data
-* [ ] Atmospheric pressure tables for different climates
-* [ ] Barometer readings are corrected using the aforementioned tables
+* [ ] Barometer readings are corrected using known pressure tables
 * [ ] Factor in temperature readings in some useful way
 * [ ] Stroke length calculator (relate servo angle to airbrake extension percentage)
-* [ ] Realtime simulation with GUI and telemetry graphs, ability to stop/start/increment clock
-* [ ] All-in-one-place configuration (rocket, airbrake, atmosphere, etc.)
