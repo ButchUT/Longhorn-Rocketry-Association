@@ -1,7 +1,7 @@
 #ifndef HARDWARE_MOCK_IMU_MPL_H
 #define HARDWARE_MOCK_IMU_MPL_H
 
-#include "flightsim.h"
+#include "flight_sim.h"
 #include "imu.h"
 #include "noise.h"
 #include <string>

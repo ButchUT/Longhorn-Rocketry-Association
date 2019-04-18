@@ -1,4 +1,4 @@
-CONTROL_PATH = ../../Control/src/
+CONTROL_PATH = ../../Control/src
 
 CURVE_GEN_PATH = ../../Curve\ Generation/C/lib
 INTEGRATOR_PATH = $(CURVE_GEN_PATH)/verlet_integrator/src

@@ -1,53 +1,31 @@
 #include "abc.h"
+#include "control_util.h"
+#include <iostream>
 #include <math.h>
 #include <string>
-#include <iostream>
-
-#define NIL 0x7FC00000 // Standard NaN value used to indicate "no solution"
-
-float abc::fconstrain(float f, float lower, float upper) {
-  return f < lower ? lower : (f > upper ? upper : f);
-}
-
-pair<float, float> abc::pb_intersect(vector<float> &p1, vector<float> &p2) {
-  float a = p1[2] - p2[2];
-  float b = p1[1] - p2[1];
-  float c = p1[0] - p2[0];
-  float discrim = b * b - 4 * a * c;
-
-  // Parabolas do not intersect
-  if (discrim < 0)
-    return pair<float, float>(NIL, NIL);
-
-  float droot = sqrt(discrim);
-  float sol1 = (-b + droot) / (2 * a), sol2 = (-b - droot) / (2 * a);
-
-  return pair<float, float>(sol1, sol2);
-}
 
 bool abc::t_conv_is_realistic(float t_conv, float t_now) {
   return t_conv > 0 &&
          t_conv < 100000;
 }
 
-AirbrakeController::AirbrakeController(
-  const abc::AirbrakeControllerConfiguration &config) :
+AirbrakeController::AirbrakeController(AirbrakeControllerConfiguration config) :
   CONFIG(config) {
-
   time_last = alt_min_velocity = alt_max_velocity = NIL;
   brake_extension = 0.0;
   iterations = 0;
   history_timestamps = vector<float>();
   alt_min_history = vector<float>();
   alt_max_history = vector<float>();
-  this->brake_profile = new BinomialBrakeProfile(
-    CONFIG.min_brake_step,
-    CONFIG.max_brake_step,
-    CONFIG.min_velocity,
-    CONFIG.max_velocity,
-    CONFIG.brake_step_profile_exp
+  this->brake_step_profile = new BinomialProfile(
+    config.bs_profile_velocity_min,
+    config.bs_profile_velocity_max,
+    config.bs_profile_step_min,
+    config.bs_profile_step_max,
+    config.bs_profile_exp
   );
   telemetry = nullptr;
+  bsc = new BrakeStepController(config);
 
   int coeff_count = 0;
   if (CONFIG.regression_id == abc::REG_QUAD) {
@@ -63,9 +41,10 @@ AirbrakeController::AirbrakeController(
 }
 
 AirbrakeController::~AirbrakeController() {
-  delete brake_profile;
-  if (CONFIG.regression_id != abc::REG_NONE)
+  delete brake_step_profile;
+  if (regressor != nullptr)
     delete regressor;
+  delete bsc;
 }
 
 float AirbrakeController::get_brake_extension() {
@@ -119,24 +98,33 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
     // on convergence time
     if (CONFIG.regression_id != abc::REG_NONE && time_of_convergence != NIL &&
       iterations >= CONFIG.bounds_history_size) {
-
-      // Fit parabolas to each bound history and find their intersections
+      float sol_final = NIL, sol_convergence_altitude = NIL;
+      vector<float> sols;
+      // Fit functions, compute intersection(s)
       regressor->fit(history_timestamps, alt_min_history, amin_coeffs);
       regressor->fit(history_timestamps, alt_max_history, amax_coeffs);
-      pair<float, float> sols = abc::pb_intersect(amin_coeffs, amax_coeffs);
+      regressor->intersect(amin_coeffs, amax_coeffs, sols);
 
-      // Proposed solution is whichever polyreg zero was closest to the linear
-      // convergence calculation's prediction
-      float t_conv1_err = fabs(time_of_convergence - sols.first);
-      float t_conv2_err = fabs(time_of_convergence - sols.second);
-      float sol = t_conv1_err < t_conv2_err ? sols.first : sols.second;
+      if (CONFIG.regression_id == abc::REG_QUAD) {
+        // For quadratic regression, proposed solution is whichever is closest
+        // to the slope approximation's guess
+        float t_conv1_err = fabs(time_of_convergence - sols[0]);
+        float t_conv2_err = fabs(time_of_convergence - sols[1]);
+        sol_final = t_conv1_err < t_conv2_err ? sols[0] : sols[1];
+        float t1 = sol_final, t2 = t1 * t1;
+        sol_convergence_altitude = amin_coeffs[2] * t2 + amin_coeffs[1] * t1 +
+          amin_coeffs[0];
+      } else if (CONFIG.regression_id == abc::REG_EXP) {
+        // For exponential regression, there is only one solution
+        sol_final = sols[0];
+        sol_convergence_altitude = amin_coeffs[1] * pow(EULERS_NUMBER,
+          amin_coeffs[0] * sol_final);
+      }
 
       // If the time predicted with regression is realistic, use it
-      if (abc::t_conv_is_realistic(sol, t)) {
-        time_of_convergence = sol;
-        float t1 = time_of_convergence, t2 = t1 * t1;
-        convergence_altitude = amin_coeffs[2] * t2 + amin_coeffs[1] * t1 +
-          amin_coeffs[0];
+      if (abc::t_conv_is_realistic(sol_final, t)) {
+        time_of_convergence = sol_final;
+        convergence_altitude = sol_convergence_altitude;
       }
     }
 
@@ -144,9 +132,10 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
     // the right direction
     if (convergence_altitude != NIL) {
       float error = convergence_altitude - CONFIG.target_altitude;
-      float brake_step = brake_profile->get_step_size(v) *
+      float brake_step = brake_step_profile->get(v) *
         (error < 0 ? -1 : 1);
-      brake_extension = abc::fconstrain(brake_extension + brake_step,
+      // brake_step = bsc->update(brake_step, error, v);
+      brake_extension = util::fconstrain(brake_extension + brake_step,
         BRAKE_LOWER_BOUND, BRAKE_UPPER_BOUND);
 
       if (telemetry != nullptr)
@@ -155,6 +144,9 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
       if (telemetry != nullptr)
         telemetry->sendln("aconv", "0");
   }
+
+  if (telemetry != nullptr)
+    telemetry->sendln("bsc_weight", std::to_string(bsc->get_weight()));
 
   time_last = t;
   iterations++;

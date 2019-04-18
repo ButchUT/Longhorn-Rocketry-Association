@@ -3,7 +3,7 @@
 
 #include "abc.h"
 #include "flightcomp.h"
-#include "flightsim.h"
+#include "flight_sim.h"
 #include "mock_barometer_mpl.h"
 #include "mock_imu_mpl.h"
 #include "telemetry.h"
@@ -12,7 +12,8 @@
 
 class MockSacRocket : public FlightComputerFrame {
 public:
-  MockSacRocket(FlightSimulator *sim, RocketData rdata);
+  MockSacRocket(FlightSimulator *sim, RocketData rdata,
+    AirbrakeController *abc);
 
   ~MockSacRocket();
 

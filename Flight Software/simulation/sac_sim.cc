@@ -1,8 +1,10 @@
-#include "abc_preconfig.h"
 #include <chrono>
+#include "control_profiling.h"
 #include "flight_sim.h"
+#include "abc_preconfig.h"
 #include <fstream>
 #include <iostream>
+#include "control_profiling.h"
 #include "mock_sac_rocket.h"
 #include "regression.h"
 #include <string>
@@ -16,56 +18,16 @@ double time() {
     return ms.count() / 1000.0;
 }
 
-void expreg_test() {
-  std::vector<float> x, y;
-  std::vector<float> coeffs(2);
-
-  x.push_back(0);
-  x.push_back(1);
-  x.push_back(2);
-  x.push_back(3);
-
-  y.push_back(100);
-  y.push_back(75);
-  y.push_back(68);
-  y.push_back(63);
-
-  ExponentialRegressor reg(3);
-  reg.fit(x, y, coeffs);
-
-  std::cout << coeffs[0] << " " << coeffs[1] << std::endl;
-}
-
-void verlet_test() {
-  struct InitializationData vinit;
-  vinit.initial_value = 0;
-  vinit.start_time = 0;
-  vinit.initial_velocity = 200;
-  VerletIntegrator vint = VerletIntegrator(vinit);
-
-  struct AccelerationCalculationData vacc;
-  vacc.drag_coefficient = 0.1;
-  vacc.radius = 0.1;
-  vacc.base_mass = 45;
-
-  double alt1 = vint.SimulateApogeeEuler(0.01, vacc);
-  double alt2 = vint.SimulateApogeeVerlet(0.01, vacc);
-
-  std::cout << alt1 << std::endl << alt2 << std::endl;
-}
-
 int main() {
-  expreg_test();
-
-  /*// Configure rocket
+  // Configure rocket
   struct RocketData rdata;
   rdata.initial_altitude = 0;
   rdata.drag_coeff = 0.1;
   rdata.radius = 0.1;
-  rdata.airbrake_area = 0.5;
-  rdata.burnout_mass = 45;
-  rdata.burnout_velocity = 1125.33 * 0.86;
-  rdata.burnout_altitude = 1500;
+  rdata.airbrake_area = 0.02;
+  rdata.burnout_mass = 15;
+  rdata.burnout_velocity = 343 * 0.86;
+  rdata.burnout_altitude = 1542;
 
   // Configuration
   TelemetryPipeline telemetry = TelemetryPipeline();
@@ -80,6 +42,7 @@ int main() {
   telemetry.open_pipe("vel", "dat/velocity.dat");
   telemetry.open_pipe("acc", "dat/acceleration.dat");
   telemetry.open_pipe("aconv", "dat/aconv.dat");
+  telemetry.open_pipe("bsc_weight", "dat/bsc_weight.dat");
 
   rocket.initialize();
   rocket.set_telemetry_pipeline(&telemetry);
@@ -108,5 +71,5 @@ int main() {
     "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
     "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
 
-  telemetry.close();*/
+  telemetry.close();
 }

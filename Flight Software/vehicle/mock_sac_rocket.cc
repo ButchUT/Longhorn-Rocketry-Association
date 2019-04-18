@@ -5,15 +5,19 @@
 #include "noise.h"
 #include <string>
 
-MockSacRocket::MockSacRocket(FlightSimulator *sim, RocketData rdata) {
+MockSacRocket::MockSacRocket(FlightSimulator *sim, RocketData rdata,
+  AirbrakeController *abc) {
   this->flightsim = sim;
   this->rocket_data = rdata;
+  this->abc = abc;
   altitude_last = timestep_last = -1;
+  telemetry = nullptr;
 }
 
 MockSacRocket::~MockSacRocket() {
   delete barometer;
   delete imu;
+  delete abc;
 }
 
 void MockSacRocket::set_timestep(float t) {
@@ -34,18 +38,11 @@ void MockSacRocket::initialize() {
   barometer = new MockBarometerWrapper();
   barometer->initialize();
   barometer->set_simulator(flightsim);
-  // UniformNoiseGenerator *barometer_noise = new UniformNoiseGenerator(-10, 10);
-  // barometer->set_altitude_noise(barometer_noise);
 
   // Initialize IMU
   imu = new MockImuWrapper();
   imu->initialize();
   imu->set_simulator(flightsim);
-  UniformNoiseGenerator *imu_noise = new UniformNoiseGenerator(-10, 10);
-  imu->set_acceleration_noise(imu_noise);
-
-  // Build airbrake controller
-  abc = make_2019_sac_abc();
 }
 
 void MockSacRocket::loop() {
@@ -96,13 +93,15 @@ void MockSacRocket::loop() {
     flightsim->set_airbrake_extension(extension);
 
     // Telemetry
-    telemetry->sendln("time", std::to_string(timestep));
-    telemetry->sendln("brake", std::to_string(extension));
-    telemetry->sendln("low_bound", std::to_string(alt_min));
-    telemetry->sendln("high_bound", std::to_string(alt_max));
-    telemetry->sendln("alt", std::to_string(altitude));
-    telemetry->sendln("vel", std::to_string(velocity));
-    telemetry->sendln("acc", std::to_string(acceleration));
+    if (telemetry != nullptr) {
+      telemetry->sendln("time", std::to_string(timestep));
+      telemetry->sendln("brake", std::to_string(extension));
+      telemetry->sendln("low_bound", std::to_string(alt_min));
+      telemetry->sendln("high_bound", std::to_string(alt_max));
+      telemetry->sendln("alt", std::to_string(altitude));
+      telemetry->sendln("vel", std::to_string(velocity));
+      telemetry->sendln("acc", std::to_string(acceleration));
+    }
   }
 
   altitude_last = altitude;

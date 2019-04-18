@@ -37,7 +37,7 @@ int main() {
   abc_config0.brake_step_profile_exp = -1;
   abc_config0.bounds_history_size = 50;
   abc_config0.enforce_bounds_history_size = true;
-  abc_config0.regression_id = abc::REG_QUAD;
+  abc_config0.regression_id = abc::REG_EXP;
 
   struct abc::AirbrakeControllerConfiguration abc_config1 = abc_config0;
   abc_config1.enforce_bounds_history_size = false;

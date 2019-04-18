@@ -9,6 +9,9 @@ class Regressor {
 public:
   virtual void fit(const std::vector<float> &x, const std::vector<float> &y,
     std::vector<float> &coeffs) = 0;
+
+  virtual void intersect(const std::vector<float> &a_coeffs,
+    const std::vector<float> &b_coeffs, std::vector<float> &sols) = 0;
 };
 
 class PolynomialRegressor : public Regressor {
@@ -39,20 +42,20 @@ public:
   */
   void fit(const std::vector<float> &x, const std::vector<float> &y,
     std::vector<float> &coeffs);
+
+  void intersect(const std::vector<float> &a_coeffs,
+    const std::vector<float> &b_coeffs, std::vector<float> &sols);
 };
 
 class ExponentialRegressor : public Regressor {
-protected:
-  const float E = exp(1.0);
-  float *lny;
-
 public:
   ExponentialRegressor(size_t point_count);
 
-  ~ExponentialRegressor();
-
   void fit(const std::vector<float> &x, const std::vector<float> &y,
     std::vector<float> &coeffs);
+
+  void intersect(const std::vector<float> &a_coeffs,
+    const std::vector<float> &b_coeffs, std::vector<float> &sols);
 };
 
 #endif
