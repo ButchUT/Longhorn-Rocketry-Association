@@ -10,7 +10,7 @@ std::string Barometer::get_logging_data() const {
   std::stringstream output;
 
   output << "<" << data.pressure << ", " << data.altitude << ", " <<
-    data.temperature << ">";
+      data.temperature << ">";
 
   return output.str();
 }

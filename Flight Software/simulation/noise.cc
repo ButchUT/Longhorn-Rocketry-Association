@@ -8,7 +8,7 @@ NoiseGenerator::NoiseGenerator(float l, float h) {
 }
 
 UniformNoiseGenerator::UniformNoiseGenerator(float l, float h) :
-  NoiseGenerator(l, h) {
+    NoiseGenerator(l, h) {
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   generator = new std::default_random_engine(seed);
   distribution = new std::uniform_real_distribution<float>(l, h);
@@ -24,7 +24,7 @@ float UniformNoiseGenerator::gen(float x) {
 }
 
 SinusoidalNoiseGenerator::SinusoidalNoiseGenerator(float l, float h,
-  float wavelength) : NoiseGenerator(l, h) {
+    float wavelength) : NoiseGenerator(l, h) {
   a = (2 * M_PI) / wavelength;
 }
 
@@ -33,7 +33,7 @@ float SinusoidalNoiseGenerator::gen(float t) {
 }
 
 CompoundNoiseGenerator::CompoundNoiseGenerator(float l, float h) :
-  NoiseGenerator(l, h) {}
+    NoiseGenerator(l, h) {}
 
 CompoundNoiseGenerator::~CompoundNoiseGenerator() {
   for (int i = 0; i < generators.size(); i++)

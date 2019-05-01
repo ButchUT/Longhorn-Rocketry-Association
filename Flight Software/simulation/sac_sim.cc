@@ -14,7 +14,7 @@
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
-      chrono::system_clock::now().time_since_epoch());
+        chrono::system_clock::now().time_since_epoch());
     return ms.count() / 1000.0;
 }
 
@@ -67,9 +67,9 @@ int main() {
   rocket.stop();
 
   std::cout << "FLIGHT SUMMARY" << std::endl << "--------------" << std::endl <<
-    "Duration of ascent: " << flightsim.get_time() << std::endl <<
-    "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
-    "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
+      "Duration of ascent: " << flightsim.get_time() << std::endl <<
+      "Avg. time spent in control: " << control_time_total / iterations << std::endl <<
+      "Rocket apogee: " << flightsim.get_rocket_altitude() << std::endl;
 
   telemetry.close();
 }

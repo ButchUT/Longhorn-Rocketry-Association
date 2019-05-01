@@ -6,7 +6,7 @@
 #include <string>
 
 MockSacRocket::MockSacRocket(FlightSimulator *sim, RocketData rdata,
-  AirbrakeController *abc) {
+    AirbrakeController *abc) {
   this->flightsim = sim;
   this->rocket_data = rdata;
   this->abc = abc;
@@ -60,7 +60,7 @@ void MockSacRocket::loop() {
     // TODO: Is this the best way? Integrating acceleration is also an option...
     // Perhaps some combination of both?
     float velocity = (altitude - altitude_last) /
-      (timestep - timestep_last);
+        (timestep - timestep_last);
 
     // Configure Verlet integrator
     struct InitializationData vint_data;
@@ -80,7 +80,7 @@ void MockSacRocket::loop() {
     // Radius of a circle containing the nose cone area and the area of the
     // extended airbrakes
     float r_big = sqrt(rocket_data.radius * rocket_data.radius +
-      rocket_data.airbrake_area / M_PI);
+        rocket_data.airbrake_area / M_PI);
     acalc_data.radius = r_big;
     float alt_min = (float)vint.SimulateApogeeEuler(0.01, acalc_data);
 

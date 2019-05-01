@@ -19,7 +19,7 @@ PolynomialRegressor::PolynomialRegressor(size_t pointCount, int order) {
   https://gist.github.com/chrisengelsma/108f7ab0a746323beaaf7d6634cf4add
 */
 void PolynomialRegressor::fit(const std::vector<float> &x,
-  const std::vector<float> &y, std::vector<float> &coeffs) {
+    const std::vector<float> &y, std::vector<float> &coeffs) {
   size_t N = x.size();
 
   // X = vector that stores values of sigma(xi^2n)
@@ -83,7 +83,7 @@ void PolynomialRegressor::fit(const std::vector<float> &x,
 }
 
 void PolynomialRegressor::intersect(const std::vector<float> &p1,
-  const std::vector<float> &p2, std::vector<float> &sols) {
+    const std::vector<float> &p2, std::vector<float> &sols) {
   float a = p1[2] - p2[2];
   float b = p1[1] - p2[1];
   float c = p1[0] - p2[0];
@@ -107,7 +107,7 @@ void PolynomialRegressor::intersect(const std::vector<float> &p1,
 ExponentialRegressor::ExponentialRegressor(size_t point_count) {}
 
 void ExponentialRegressor::fit(const std::vector<float> &x,
-  const std::vector<float> &y, std::vector<float> &coeffs) {
+    const std::vector<float> &y, std::vector<float> &coeffs) {
   size_t N = x.size();
   float lny[N];
 
@@ -135,6 +135,6 @@ void ExponentialRegressor::fit(const std::vector<float> &x,
 }
 
 void ExponentialRegressor::intersect( const std::vector<float> &a_coeffs,
-  const std::vector<float> &b_coeffs, std::vector<float> &sols) {
+    const std::vector<float> &b_coeffs, std::vector<float> &sols) {
   sols.push_back(log(a_coeffs[1] / b_coeffs[1]) / (b_coeffs[0] - a_coeffs[0]));
 }

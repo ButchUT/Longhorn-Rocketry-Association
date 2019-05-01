@@ -11,7 +11,7 @@
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
-      chrono::system_clock::now().time_since_epoch());
+        chrono::system_clock::now().time_since_epoch());
     return ms.count() / 1000.0;
 }
 
@@ -46,7 +46,7 @@ int main() {
   abc_config2.regression_id = abc::REG_NONE;
 
   struct abc::AirbrakeControllerConfiguration abc_configs[] =
-    {abc_config0, abc_config1, abc_config2};
+      {abc_config0, abc_config1, abc_config2};
 
   // Altitude targets
   const int NUM_ALTITUDE_TARGETS = 5;
@@ -78,7 +78,7 @@ int main() {
         abc_config.target_altitude = target_altitudes[j];
 
         MockSacRocket rocket = MockSacRocket(&flightsim, rocket_data,
-          new AirbrakeController(abc_config));
+            new AirbrakeController(abc_config));
         rocket.initialize();
         rocket.set_simulator(&flightsim);
         flightsim.begin(0);
@@ -91,15 +91,15 @@ int main() {
 
         rocket.stop();
         config_altitude_error_set.add(abc_config.target_altitude -
-          flightsim.get_rocket_altitude());
+            flightsim.get_rocket_altitude());
       }
     }
 
     std::cout << "ERROR SUMMARY - CONFIG " << i << std::endl <<
-      "------------------------" << std::endl <<
-      "mean=" << config_altitude_error_set.mean() << std::endl <<
-      "var=" << config_altitude_error_set.var() << std::endl <<
-      "stdev=" << config_altitude_error_set.stdev() << std::endl;
+        "------------------------" << std::endl <<
+        "mean=" << config_altitude_error_set.mean() << std::endl <<
+        "var=" << config_altitude_error_set.var() << std::endl <<
+        "stdev=" << config_altitude_error_set.stdev() << std::endl;
 
     if (best_config == -1 || compare_configs(config_altitude_error_set,
       best_config_set)) {

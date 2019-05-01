@@ -3,24 +3,22 @@
 #include <iostream>
 
 BrakeStepController::BrakeStepController(
-  AirbrakeControllerConfiguration config) {
+    AirbrakeControllerConfiguration config) {
   this->history_size = config.bsc_history_size;
   thresh_osc = config.bsc_thresh_osc;
   thresh_stb = config.bsc_thresh_stb;
   up_profile = new BinomialProfile(
-    config.bsc_up_profile_velocity_min,
-    config.bsc_up_profile_velocity_max,
-    config.bsc_up_profile_weight_min,
-    config.bsc_up_profile_weight_max,
-    config.bsc_up_profile_exp
-  );
+      config.bsc_up_profile_velocity_min,
+      config.bsc_up_profile_velocity_max,
+      config.bsc_up_profile_weight_min,
+      config.bsc_up_profile_weight_max,
+      config.bsc_up_profile_exp);
   down_profile = new BinomialProfile(
-    config.bsc_down_profile_velocity_min,
-    config.bsc_down_profile_velocity_max,
-    config.bsc_down_profile_weight_min,
-    config.bsc_down_profile_weight_max,
-    config.bsc_down_profile_exp
-  );
+      config.bsc_down_profile_velocity_min,
+      config.bsc_down_profile_velocity_max,
+      config.bsc_down_profile_weight_min,
+      config.bsc_down_profile_weight_max,
+      config.bsc_down_profile_exp);
   weight = 1.0;
 }
 
@@ -30,7 +28,7 @@ BrakeStepController::~BrakeStepController() {
 }
 
 float BrakeStepController::update(float step_size, float altitude_error,
-  float velocity) {
+    float velocity) {
   // Maintain error history
   error_history.push_back(altitude_error);
   if (error_history.size() > history_size)

@@ -68,18 +68,6 @@ public:
     Calculates a new brake extension such that the minimum and maximum
     projected altitudes will converge at the target altitude.
 
-    Synopsis of the algorithm:
-      - Maintain a history of the last N min and max altitudes
-      - Fit quadratic functions to each history
-      - Find the intersection of those functions to predict bound convergence
-      - If the point of intersection is nonexistent or nonsensical, a simple
-        slope approximation of each bound's velocity is used to compute
-        convergence
-      - Step the brakes in the direction that will bring the convergence
-        point closer to the target altitude
-      - Step magnitude is found by plugging rocket velocity into the
-        controller's brake profile
-
     @param t system time
     @param v rocket velocity
     @param alt_min minimum altitude (in the event of full brake)

@@ -18,7 +18,7 @@ void flightsim::assert_valid_stop_condition(int cond) {
 }
 
 FlightSimulator::FlightSimulator(const struct RocketData &rdata) :
-  rocket_data(rdata) {
+    rocket_data(rdata) {
   sim_running = false;
   stop_condition = flightsim::STOP_CONDITION_APOGEE;
   gen = new UniformNoiseGenerator(-3, 3);
@@ -47,32 +47,31 @@ void FlightSimulator::advance(float delta_t) {
 
   t_c += delta_t;
   if (sim_running && stop_condition == flightsim::STOP_CONDITION_TIME &&
-    t_c >= t_f)
+      t_c >= t_f)
     sim_running = false;
 
   // Compute drag force
   float airbrake_area = airbrake_extension * rocket_data.airbrake_area;
   float r = sqrt(rocket_data.radius * rocket_data.radius + airbrake_area /
-    M_PI);
+      M_PI);
   rocket_acceleration = (float)calculate_acceleration(
-    NULL,
-    0,
-    rocket_data.burnout_mass,
-    rocket_velocity,
-    rocket_altitude,
-    0,
-    r,
-    rocket_data.drag_coeff,
-    0
-  );
+      NULL,
+      0,
+      rocket_data.burnout_mass,
+      rocket_velocity,
+      rocket_altitude,
+      0,
+      r,
+      rocket_data.drag_coeff,
+      0);
   rocket_velocity += rocket_acceleration * delta_t;
   rocket_altitude += rocket_velocity * delta_t;
 
   if (rocket_velocity <= 0 &&
-    stop_condition == flightsim::STOP_CONDITION_APOGEE)
+      stop_condition == flightsim::STOP_CONDITION_APOGEE)
     sim_running = false;
   else if (rocket_altitude <= 0 &&
-    stop_condition == flightsim::STOP_CONDITION_CRASH)
+      stop_condition == flightsim::STOP_CONDITION_CRASH)
     sim_running = false;
 }
 
