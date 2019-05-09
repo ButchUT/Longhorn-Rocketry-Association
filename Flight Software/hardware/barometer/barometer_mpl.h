@@ -1,8 +1,9 @@
 #ifndef HARDWARE_BAROMETER_MPL_H
 #define HARDWARE_BAROMETER_MPL_H
 
-#include <string>
 #include "barometer.h"
+
+#include <string>
 
 #ifdef ARDUINO
   #include <Adafruit_MPL3115A2.h>

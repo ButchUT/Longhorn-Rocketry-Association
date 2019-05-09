@@ -1,16 +1,17 @@
-#include <chrono>
 #include "control_profiling.h"
 #include "flight_sim.h"
 #include "abc_preconfig.h"
-#include <fstream>
-#include <iostream>
 #include "control_profiling.h"
 #include "mock_sac_rocket.h"
 #include "regression.h"
-#include <string>
 #include "telemetry.h"
-#include <vector>
 #include "verlet_integrator.h"
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(

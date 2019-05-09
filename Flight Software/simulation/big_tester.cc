@@ -1,14 +1,15 @@
 #include "abc_preconfig.h"
-#include <chrono>
 #include "flight_sim.h"
-#include <fstream>
-#include <iostream>
 #include "mock_sac_rocket.h"
 #include "stats.h"
-#include <string>
 #include "telemetry.h"
-#include <vector>
 #include "verlet_integrator.h"
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 double time() {
     chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(
@@ -180,7 +181,7 @@ int main() {
   FlightSimulator flightsim = FlightSimulator(rocket_data);
   flightsim.set_stop_condition(flightsim::STOP_CONDITION_APOGEE);
 
-  const int FLIGHTS_PER_CONFIG = 10;
+  const int FLIGHTS_PER_CONFIG = 5;
   AirbrakeControllerConfiguration best_config;
   Dataset best_config_set;
   int stop_after = 100;

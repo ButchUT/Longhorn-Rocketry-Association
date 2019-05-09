@@ -2,6 +2,7 @@
 #define FLIGHTSIM_H
 
 #include "noise.h"
+
 #include <vector>
 
 namespace flightsim {

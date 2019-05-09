@@ -3,6 +3,7 @@
 #endif
 
 #include "imu_mpl.h"
+
 #include <sstream>
 
 void ImuWrapper::initialize() {

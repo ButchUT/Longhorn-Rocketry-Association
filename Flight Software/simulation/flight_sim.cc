@@ -1,7 +1,8 @@
 #include "acceleration_calculator.h"
-#include <assert.h>
 #include "density_calculator.h"
 #include "flight_sim.h"
+
+#include <assert.h>
 #include <math.h>
 
 #define GRAVITY 9.80665

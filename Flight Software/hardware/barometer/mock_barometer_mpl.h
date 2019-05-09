@@ -4,6 +4,7 @@
 #include "barometer.h"
 #include "flight_sim.h"
 #include "noise.h"
+
 #include <string>
 
 class MockBarometerWrapper : public Barometer {

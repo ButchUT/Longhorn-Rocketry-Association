@@ -1,5 +1,6 @@
-#include <iostream>
 #include "regression.h"
+
+#include <iostream>
 #include <vector>
 
 int main() {

@@ -1,4 +1,5 @@
 #include "barometer.h"
+
 #include <sstream>
 
 Barometer::~Barometer() {}

@@ -1,4 +1,5 @@
 #include "barometer_mpl.h"
+
 #include <sstream>
 
 #ifdef ARDUINO

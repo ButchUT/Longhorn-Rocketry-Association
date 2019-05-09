@@ -6,6 +6,7 @@
 #endif
 
 #include "imu.h"
+
 #include <string>
 
 class ImuWrapper : public Imu {

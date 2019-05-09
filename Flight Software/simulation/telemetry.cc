@@ -1,5 +1,6 @@
-#include <fstream>
 #include "telemetry.h"
+
+#include <fstream>
 
 TelemetryPipeline::TelemetryPipeline() {}
 

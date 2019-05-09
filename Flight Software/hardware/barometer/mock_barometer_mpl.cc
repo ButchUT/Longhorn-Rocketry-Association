@@ -1,4 +1,5 @@
 #include "mock_barometer_mpl.h"
+
 #include <sstream>
 
 void MockBarometerWrapper::initialize() {}

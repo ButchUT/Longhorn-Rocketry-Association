@@ -1,8 +1,9 @@
 #include "abc_preconfig.h"
-#include <iostream>
-#include <math.h>
 #include "mock_sac_rocket.h"
 #include "noise.h"
+
+#include <iostream>
+#include <math.h>
 #include <string>
 
 MockSacRocket::MockSacRocket(FlightSimulator *sim, RocketData rdata,

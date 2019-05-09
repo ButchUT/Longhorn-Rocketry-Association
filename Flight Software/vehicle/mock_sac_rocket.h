@@ -7,8 +7,9 @@
 #include "mock_barometer_mpl.h"
 #include "mock_imu_mpl.h"
 #include "telemetry.h"
-#include <vector>
 #include "verlet_integrator.h"
+
+#include <vector>
 
 class MockSacRocket : public FlightComputerFrame {
 public:

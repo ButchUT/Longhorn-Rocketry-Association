@@ -1,6 +1,7 @@
+#include "noise.h"
+
 #include <chrono>
 #include <math.h>
-#include "noise.h"
 
 NoiseGenerator::NoiseGenerator(float l, float h) {
   low = l;
