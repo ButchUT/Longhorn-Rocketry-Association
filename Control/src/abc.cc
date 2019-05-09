@@ -25,6 +25,7 @@ AirbrakeController::AirbrakeController(AirbrakeControllerConfiguration config) :
       config.bs_profile_exp);
   telemetry = nullptr;
   bsc = new BrakeStepController(config);
+  regressor = nullptr;
 
   int coeff_count = 0;
   if (CONFIG.regression_id == abc::REG_QUAD) {

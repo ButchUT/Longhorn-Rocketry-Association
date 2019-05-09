@@ -4,7 +4,7 @@
 
 AirbrakeController* make_2019_sac_abc() {
   AirbrakeControllerConfiguration config;
-  config.target_altitude = 3750;
+  config.target_altitude = 4600;
   config.bounds_history_size = 50;
   config.enforce_bounds_history_size = false;
   config.regression_id = abc::REG_NONE;
@@ -16,8 +16,8 @@ AirbrakeController* make_2019_sac_abc() {
   config.bs_profile_exp = -1;
 
   config.bsc_history_size = 10;
-  config.bsc_thresh_osc = 0.7;
-  config.bsc_thresh_stb = 0.3;
+  config.bsc_thresh_osc = 0.5;
+  config.bsc_thresh_stb = 0.1;
 
   config.bsc_down_profile_velocity_min = config.bs_profile_velocity_min;
   config.bsc_down_profile_velocity_max = config.bs_profile_velocity_max;

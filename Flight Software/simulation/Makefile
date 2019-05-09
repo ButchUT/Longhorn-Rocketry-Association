@@ -22,5 +22,11 @@ sac_sim: $(HEADER) $(SRC)
 big_tester: $(HEADER) $(SRC)
 	g++ -std=c++11 -g $(SRC) stats.cc stats.h big_tester.cc flight_sim.cc flight_sim.h noise.cc noise.h telemetry.cc telemetry.h -I./ -I$(INTEGRATOR_PATH) -I$(ACCELCALC_PATH) -I$(DRAGCALC_PATH) -I$(DENSITYCALC_PATH) -I$(INTERPOLATE_PATH) -I$(CONTROL_PATH) -I$(BAROMETER_PATH) -I$(IMU_PATH) -I$(VEHICLE_PATH) -o big_tester
 
+big_tester0: $(HEADER) $(SRC)
+	g++ -std=c++11 -g $(SRC) stats.cc stats.h big_tester.cc flight_sim.cc flight_sim.h noise.cc noise.h telemetry.cc telemetry.h -I./ -I$(INTEGRATOR_PATH) -I$(ACCELCALC_PATH) -I$(DRAGCALC_PATH) -I$(DENSITYCALC_PATH) -I$(INTERPOLATE_PATH) -I$(CONTROL_PATH) -I$(BAROMETER_PATH) -I$(IMU_PATH) -I$(VEHICLE_PATH) -o big_tester0
+
+big_tester1: $(HEADER) $(SRC)
+	g++ -std=c++11 -g $(SRC) stats.cc stats.h big_tester.cc flight_sim.cc flight_sim.h noise.cc noise.h telemetry.cc telemetry.h -I./ -I$(INTEGRATOR_PATH) -I$(ACCELCALC_PATH) -I$(DRAGCALC_PATH) -I$(DENSITYCALC_PATH) -I$(INTERPOLATE_PATH) -I$(CONTROL_PATH) -I$(BAROMETER_PATH) -I$(IMU_PATH) -I$(VEHICLE_PATH) -o big_tester1
+
 clean:
-	rm sac_sim big_tester *~
+	rm sac_sim big_tester big_tester0 big_tester1 *~

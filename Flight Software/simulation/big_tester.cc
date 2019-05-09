@@ -7,6 +7,7 @@
 #include "stats.h"
 #include <string>
 #include "telemetry.h"
+#include <vector>
 #include "verlet_integrator.h"
 
 double time() {
@@ -25,88 +26,223 @@ bool compare_configs(Dataset &a, Dataset &b) {
   return a_score < b_score;
 }
 
+void print_dataset_summary(Dataset &set) {
+  std::cout << "SUMMARY\n-------" << std::endl <<
+      "mean=" << set.mean() << std::endl <<
+      "stdev=" << set.stdev() << std::endl;
+}
+
+void print_config(AirbrakeControllerConfiguration &config) {
+  std::cout << "CONFIG\n------\n" <<
+    "bounds_history_size=" << config.bounds_history_size << "\n" <<
+    "enforce_bounds_history_size=" << config.enforce_bounds_history_size << "\n" <<
+    "regression_id=" << config.regression_id << "\n" <<
+    "bs_profile_velocity_min=" << config.bs_profile_velocity_min << "\n" <<
+    "bs_profile_velocity_max=" << config.bs_profile_velocity_max << "\n" <<
+    "bs_profile_step_min=" << config.bs_profile_step_min << "\n" <<
+    "bs_profile_step_max=" << config.bs_profile_step_max << "\n" <<
+    "bs_profile_exp=" << config.bs_profile_exp << "\n" <<
+    "bsc_history_size=" << config.bsc_history_size << "\n" <<
+    "bsc_thresh_osc=" << config.bsc_thresh_osc << "\n" <<
+    "bsc_thresh_stb=" << config.bsc_thresh_stb << "\n" <<
+    "bsc_down_profile_velocity_min=" << config.bsc_down_profile_velocity_min << "\n" <<
+    "bsc_down_profile_velocity_max=" << config.bsc_down_profile_velocity_max << "\n" <<
+    "bsc_down_profile_weight_min=" << config.bsc_down_profile_weight_min << "\n" <<
+    "bsc_down_profile_weight_max=" << config.bsc_down_profile_weight_max << "\n" <<
+    "bsc_down_profile_exp=" << config.bsc_down_profile_exp << "\n" <<
+    "bsc_up_profile_velocity_min=" << config.bsc_up_profile_velocity_min << "\n" <<
+    "bsc_up_profile_velocity_max=" << config.bsc_up_profile_velocity_max << "\n" <<
+    "bsc_up_profile_weight_min=" << config.bsc_up_profile_weight_min << "\n" <<
+    "bsc_up_profile_weight_max=" << config.bsc_up_profile_weight_max << "\n" <<
+    "bsc_up_profile_exp=" << config.bsc_up_profile_exp << "\n";
+}
+
 int main() {
-  // Airbrake controller configurations
-  const int NUM_ABC_CONFIGS = 3;
+  // Build configurations
+  std::vector<AirbrakeControllerConfiguration> configs;
 
-  struct abc::AirbrakeControllerConfiguration abc_config0;
-  abc_config0.min_velocity = 400;
-  abc_config0.max_velocity = 1125.33 * 0.86;
-  abc_config0.min_brake_step = 0.075;
-  abc_config0.max_brake_step = 0.1;
-  abc_config0.brake_step_profile_exp = -1;
-  abc_config0.bounds_history_size = 50;
-  abc_config0.enforce_bounds_history_size = true;
-  abc_config0.regression_id = abc::REG_EXP;
+  AirbrakeControllerConfiguration bs_profile_lower;
+  bs_profile_lower.bs_profile_velocity_min = 80;
+  bs_profile_lower.bs_profile_velocity_max = 320;
+  bs_profile_lower.bs_profile_step_min = 0.04;
+  bs_profile_lower.bs_profile_step_max = 0.1;
 
-  struct abc::AirbrakeControllerConfiguration abc_config1 = abc_config0;
-  abc_config1.enforce_bounds_history_size = false;
+  AirbrakeControllerConfiguration bs_profile_upper;
+  bs_profile_upper.bs_profile_velocity_min = 140;
+  bs_profile_upper.bs_profile_velocity_max = 400;
+  bs_profile_upper.bs_profile_step_min = 0.1;
+  bs_profile_upper.bs_profile_step_max = 0.2;
 
-  struct abc::AirbrakeControllerConfiguration abc_config2 = abc_config1;
-  abc_config2.regression_id = abc::REG_NONE;
+  AirbrakeControllerConfiguration bs_profile_increment;
+  bs_profile_increment.bs_profile_velocity_min = 20;
+  bs_profile_increment.bs_profile_velocity_max = 20;
+  bs_profile_increment.bs_profile_step_min = 0.02;
+  bs_profile_increment.bs_profile_step_max = 0.02;
 
-  struct abc::AirbrakeControllerConfiguration abc_configs[] =
-      {abc_config0, abc_config1, abc_config2};
+  AirbrakeControllerConfiguration bsc_weight_lower;
+  bsc_weight_lower.bsc_down_profile_weight_min = 0.2;
+  bsc_weight_lower.bsc_down_profile_weight_max = 0.6;
+  bsc_weight_lower.bsc_up_profile_weight_min = 1.2;
+  bsc_weight_lower.bsc_up_profile_weight_max = 1.6;
 
-  // Altitude targets
-  const int NUM_ALTITUDE_TARGETS = 5;
-  int target_altitudes[] = {15000, 15100, 15200, 15300, 15400};
+  AirbrakeControllerConfiguration bsc_weight_upper;
+  bsc_weight_upper.bsc_down_profile_weight_min = 0.4;
+  bsc_weight_upper.bsc_down_profile_weight_max = 0.8;
+  bsc_weight_upper.bsc_up_profile_weight_min = 1.4;
+  bsc_weight_upper.bsc_up_profile_weight_max = 1.8;
+
+  AirbrakeControllerConfiguration bsc_weight_increment;
+  bsc_weight_increment.bsc_down_profile_weight_min = 0.1;
+  bsc_weight_increment.bsc_down_profile_weight_max = 0.1;
+  bsc_weight_increment.bsc_up_profile_weight_min = 0.1;
+  bsc_weight_increment.bsc_up_profile_weight_max = 0.1;
+
+  AirbrakeControllerConfiguration bsc_params_lower;
+  bsc_params_lower.bsc_history_size = 10;
+  bsc_params_lower.bsc_thresh_osc = 0.4;
+  bsc_params_lower.bsc_thresh_stb = 0.1;
+
+  AirbrakeControllerConfiguration bsc_params_upper;
+  bsc_params_upper.bsc_history_size = 20;
+  bsc_params_upper.bsc_thresh_osc = 0.7;
+  bsc_params_upper.bsc_thresh_stb = 0.3;
+
+  AirbrakeControllerConfiguration bsc_params_increment;
+  bsc_params_increment.bsc_history_size = 2;
+  bsc_params_increment.bsc_thresh_osc = 0.1;
+  bsc_params_increment.bsc_thresh_stb = 0.1;
+
+  for (float bspvmin = bs_profile_lower.bs_profile_velocity_min;
+      bspvmin <= bs_profile_upper.bs_profile_velocity_min;
+      bspvmin += bs_profile_increment.bs_profile_velocity_min)
+  for (float bspvmax = bs_profile_lower.bs_profile_velocity_max;
+      bspvmax <= bs_profile_upper.bs_profile_velocity_max;
+      bspvmax += bs_profile_increment.bs_profile_velocity_max)
+  for (float bspsmin = bs_profile_lower.bs_profile_step_min;
+      bspsmin <= bs_profile_upper.bs_profile_step_min;
+      bspsmin += bs_profile_increment.bs_profile_step_min)
+  for (float bspsmax = bs_profile_lower.bs_profile_step_max;
+      bspsmax <= bs_profile_upper.bs_profile_step_max;
+      bspsmax += bs_profile_increment.bs_profile_step_max)
+  for (float bscdwmin = bsc_weight_lower.bsc_down_profile_weight_min;
+      bscdwmin <= bsc_weight_upper.bsc_down_profile_weight_min;
+      bscdwmin += bsc_weight_increment.bsc_down_profile_weight_min)
+  for (float bscdwmax = bsc_weight_lower.bsc_down_profile_weight_max;
+      bscdwmax <= bsc_weight_upper.bsc_down_profile_weight_max;
+      bscdwmax += bsc_weight_increment.bsc_down_profile_weight_max)
+  for (float bscuwmin = bsc_weight_lower.bsc_up_profile_weight_min;
+      bscuwmin <= bsc_weight_upper.bsc_up_profile_weight_min;
+      bscuwmin += bsc_weight_increment.bsc_up_profile_weight_min)
+  for (float bscuwmax = bsc_weight_lower.bsc_up_profile_weight_max;
+      bscuwmax <= bsc_weight_upper.bsc_up_profile_weight_max;
+      bscuwmax += bsc_weight_increment.bsc_up_profile_weight_max)
+  for (float bschs = bsc_params_lower.bsc_history_size;
+      bschs <= bsc_params_upper.bsc_history_size;
+      bschs += bsc_params_increment.bsc_history_size)
+  for (float bscto = bsc_params_lower.bsc_thresh_osc;
+      bscto <= bsc_params_upper.bsc_thresh_osc;
+      bscto += bsc_params_increment.bsc_thresh_osc)
+  for (float bscts = bsc_params_lower.bsc_thresh_stb;
+      bscts <= bsc_params_upper.bsc_thresh_stb;
+      bscts += bsc_params_increment.bsc_thresh_stb)
+  {
+    AirbrakeControllerConfiguration config;
+    config.bs_profile_velocity_min = bspvmin;
+    config.bs_profile_velocity_max = bspvmax;
+    config.bs_profile_step_min = bspsmin;
+    config.bs_profile_step_max = bspsmax;
+
+    config.bsc_history_size = bschs;
+    config.bsc_thresh_osc = bscto;
+    config.bsc_thresh_stb = bscts;
+
+    config.bsc_down_profile_weight_min = bscdwmin;
+    config.bsc_down_profile_weight_max = bscdwmax;
+    config.bsc_up_profile_weight_min = bscuwmin;
+    config.bsc_up_profile_weight_max = bscuwmax;
+
+    configs.push_back(config);
+  }
+
+  // Target altitudes to test
+  float target_altitudes[] = {4650, 4700, 4750};
+  int num_target_altitudes = 3;
 
   // Vehicle and simulator setup
   struct RocketData rocket_data;
   rocket_data.initial_altitude = 0;
   rocket_data.drag_coeff = 0.1;
   rocket_data.radius = 0.1;
-  rocket_data.airbrake_area = 0.5;
-  rocket_data.burnout_mass = 45;
-  rocket_data.burnout_velocity = 1125.33 * 0.86;
-  rocket_data.burnout_altitude = 1500;
+  rocket_data.airbrake_area = 0.02;
+  rocket_data.burnout_mass = 15;
+  rocket_data.burnout_velocity = 343 * 0.86;
+  rocket_data.burnout_altitude = 1542;
   FlightSimulator flightsim = FlightSimulator(rocket_data);
   flightsim.set_stop_condition(flightsim::STOP_CONDITION_APOGEE);
 
-  const int TRIALS_PER_FLIGHT = 10;
-  int best_config = -1;
+  const int FLIGHTS_PER_CONFIG = 10;
+  AirbrakeControllerConfiguration best_config;
   Dataset best_config_set;
+  int stop_after = 100;
 
-  // Run sims
-  for (int i = 0; i < NUM_ABC_CONFIGS; i++) {
+  for (int i = 0; i < configs.size(); i++) {
     Dataset config_altitude_error_set;
+    AirbrakeControllerConfiguration config = configs[i];
 
-    for (int j = 0; j < NUM_ALTITUDE_TARGETS; j++) {
-      for (int k = 0; k < TRIALS_PER_FLIGHT; k++) {
-        abc::AirbrakeControllerConfiguration abc_config = abc_configs[i];
-        abc_config.target_altitude = target_altitudes[j];
+    config.bounds_history_size = 50;
+    config.enforce_bounds_history_size = false;
+    config.regression_id = abc::REG_NONE;
 
+    config.bs_profile_exp = -1;
+
+    config.bsc_down_profile_velocity_min = config.bs_profile_velocity_min;
+    config.bsc_down_profile_velocity_max = config.bs_profile_velocity_max;
+    config.bsc_down_profile_exp = -1;
+
+    config.bsc_up_profile_velocity_min = config.bs_profile_velocity_min;
+    config.bsc_up_profile_velocity_max = config.bs_profile_velocity_max;
+    config.bsc_up_profile_exp = -1;
+
+    for (int j = 0; j < FLIGHTS_PER_CONFIG; j++) {
+      for (int k = 0; k < num_target_altitudes; k++) {
+        config.target_altitude = target_altitudes[k];
         MockSacRocket rocket = MockSacRocket(&flightsim, rocket_data,
-            new AirbrakeController(abc_config));
+            new AirbrakeController(config));
         rocket.initialize();
         rocket.set_simulator(&flightsim);
         flightsim.begin(0);
+        float t_upd = 0;
 
         while (flightsim.is_running()) {
-          flightsim.advance(0.1);
-          rocket.set_timestep(flightsim.get_time());
-          rocket.loop();
+          flightsim.advance(0.01);
+          float t = flightsim.get_time();
+          float t_upd_el = t - t_upd;
+          if (t_upd_el >= 0.1) {
+            rocket.set_timestep(t);
+            rocket.loop();
+            t_upd = t;
+          }
         }
 
         rocket.stop();
-        config_altitude_error_set.add(abc_config.target_altitude -
+        config_altitude_error_set.add(config.target_altitude -
             flightsim.get_rocket_altitude());
       }
     }
 
-    std::cout << "ERROR SUMMARY - CONFIG " << i << std::endl <<
-        "------------------------" << std::endl <<
-        "mean=" << config_altitude_error_set.mean() << std::endl <<
-        "var=" << config_altitude_error_set.var() << std::endl <<
-        "stdev=" << config_altitude_error_set.stdev() << std::endl;
+    std::cout << "Completed simulation " << i << " of " << configs.size()
+        << std::endl;
 
-    if (best_config == -1 || compare_configs(config_altitude_error_set,
-      best_config_set)) {
-      best_config = i;
+    if (i == 0 || compare_configs(config_altitude_error_set,
+        best_config_set)) {
+      best_config = config;
       best_config_set = config_altitude_error_set;
     }
+
+    if (i >= stop_after)
+      break;
   }
 
-  std::cout << "Best config: " << best_config << std::endl;
+  print_dataset_summary(best_config_set);
+  print_config(best_config);
 }

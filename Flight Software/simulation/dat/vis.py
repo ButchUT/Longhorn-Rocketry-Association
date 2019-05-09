@@ -35,5 +35,5 @@ for i in range(1, len(sys.argv)):
 fig.show()
 ax.set_title(", ".join(sys.argv[1:]))
 axes = plt.gca()
-axes.set_ylim([0, 4500])
+# axes.set_ylim([0, 4500])
 plt.show()
