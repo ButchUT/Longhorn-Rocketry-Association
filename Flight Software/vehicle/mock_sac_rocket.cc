@@ -31,7 +31,6 @@ void MockSacRocket::set_simulator(FlightSimulator *sim) {
 
 void MockSacRocket::set_telemetry_pipeline(TelemetryPipeline *pipeline) {
   telemetry = pipeline;
-  abc->set_telemetry_pipeline(pipeline);
 }
 
 void MockSacRocket::initialize() {

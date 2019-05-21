@@ -5,9 +5,7 @@
 #include "abc_config.h"
 #include "control_profiling.h"
 #include "regression.h"
-#include "telemetry.h"
 
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -16,7 +14,14 @@ using namespace std;
 namespace abc {
   const int REG_NONE = 0;
   const int REG_QUAD = 1;
-  const int REG_EXP = 3;
+  const int REG_EXP = 2;
+
+  /**
+    Internal controller values that we may want to telemetrize
+  */
+  struct AirbrakeControllerTelemetry {
+    float convergence_altitude;
+  };
 
   /**
     A subjective method of determining if a predicted bound convergence time
@@ -30,7 +35,7 @@ namespace abc {
 }
 
 class AirbrakeController {
-private:
+protected:
   const float BRAKE_LOWER_BOUND = 0.0; // Brakes fully retracted
   const float BRAKE_UPPER_BOUND = 1.0; // Brakes fully extended
   const AirbrakeControllerConfiguration CONFIG;
@@ -44,8 +49,8 @@ private:
 
   Profile *brake_step_profile;
   Regressor *regressor;
-  TelemetryPipeline *telemetry;
   BrakeStepController *bsc;
+  abc::AirbrakeControllerTelemetry telemetry;
 
 public:
   /**
@@ -78,12 +83,9 @@ public:
   float update(float t, float v, float alt_min, float alt_max);
 
   /**
-    Sets the stream that update telemetry will be printed to. If stream is
-    nullptr, no telemetry will be generated.
-
-    @param stream target stream
+    @brief Gets a reference to the internal telemetry struct
   */
-  void set_telemetry_pipeline(TelemetryPipeline *pipeline);
+  abc::AirbrakeControllerTelemetry& get_telemetry();
 };
 
 #endif

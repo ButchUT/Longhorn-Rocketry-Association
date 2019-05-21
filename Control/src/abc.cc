@@ -24,7 +24,6 @@ AirbrakeController::AirbrakeController(AirbrakeControllerConfiguration config) :
       config.bs_profile_step_min,
       config.bs_profile_step_max,
       config.bs_profile_exp);
-  telemetry = nullptr;
   bsc = new BrakeStepController(config);
   regressor = nullptr;
 
@@ -52,11 +51,12 @@ float AirbrakeController::get_brake_extension() {
   return brake_extension;
 }
 
-float AirbrakeController::update(float t, float v, float altMin, float altMax) {
+float AirbrakeController::update(float t, float v, float alt_min,
+    float alt_max) {
   // Record bounds history and enforce size limit
   history_timestamps.push_back(t);
-  alt_min_history.push_back(altMin);
-  alt_max_history.push_back(altMax);
+  alt_min_history.push_back(alt_min);
+  alt_max_history.push_back(alt_max);
 
   // Unfortunately, O(N) performance is unavoidable here without rewriting the
   // regression algorithm to use ring buffers, and that's stupid
@@ -74,9 +74,9 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
     float time_of_convergence = NIL;
 
     // Approximate the velocity of each bound
-    float potential_alt_min_velocity = (altMin -
+    float potential_alt_min_velocity = (alt_min -
         alt_min_history[iterations - 1]) / dt;
-    float potential_alt_max_velocity = (altMax -
+    float potential_alt_max_velocity = (alt_max -
         alt_max_history[iterations - 1]) / dt;
 
     // Only use bound velocities that are in the right direction
@@ -88,9 +88,9 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
     // If valid velocities were computed at some point, proceed with a linear
     // convergence calculation
     if (alt_min_velocity != NIL && alt_max_velocity != NIL) {
-      float time_to_convergence = (altMax - altMin) /
+      float time_to_convergence = (alt_max - alt_min) /
           (alt_min_velocity - alt_max_velocity);
-      convergence_altitude = altMax + alt_max_velocity * time_to_convergence;
+      convergence_altitude = alt_max + alt_max_velocity * time_to_convergence;
       time_of_convergence = t + time_to_convergence;
     }
 
@@ -109,6 +109,10 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
       if (CONFIG.regression_id == abc::REG_QUAD) {
         // For quadratic regression, proposed solution is whichever is closest
         // to the slope approximation's guess
+        // TODO: Simulation proved polynomial regression to be inferior to
+        // simple linear approximations. However, their t_conv values have
+        // inherently different reference points, so comparing predictions
+        // like this is flawed--probable logic error
         float t_conv1_err = fabs(time_of_convergence - sols[0]);
         float t_conv2_err = fabs(time_of_convergence - sols[1]);
         sol_final = t_conv1_err < t_conv2_err ? sols[0] : sols[1];
@@ -137,16 +141,10 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
       brake_step = bsc->update(brake_step, error, v);
       brake_extension = util::fconstrain(brake_extension + brake_step,
           BRAKE_LOWER_BOUND, BRAKE_UPPER_BOUND);
+    }
 
-      if (telemetry != nullptr)
-        telemetry->sendln("aconv", std::to_string(convergence_altitude));
-    } else
-      if (telemetry != nullptr)
-        telemetry->sendln("aconv", "0");
+    telemetry.convergence_altitude = convergence_altitude;
   }
-
-  if (telemetry != nullptr)
-    telemetry->sendln("bsc_weight", std::to_string(bsc->get_weight()));
 
   time_last = t;
   iterations++;
@@ -154,6 +152,6 @@ float AirbrakeController::update(float t, float v, float altMin, float altMax) {
   return brake_extension;
 }
 
-void AirbrakeController::set_telemetry_pipeline(TelemetryPipeline *pipeline) {
-  telemetry = pipeline;
+abc::AirbrakeControllerTelemetry& AirbrakeController::get_telemetry() {
+  return telemetry;
 }
